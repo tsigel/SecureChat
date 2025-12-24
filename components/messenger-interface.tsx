@@ -6,9 +6,10 @@ import { MessageInput } from "./message-input"
 import { ContactsList } from "./contacts-list"
 import { HashAvatar } from "./hash-avatar"
 import { SpinIcon } from "./ui/spin-icon"
-import { Search, MoreVertical, Menu, LogOut, MessageSquare, UserPlus, Copy } from "lucide-react"
+import { Search, MoreVertical, Menu, LogOut, MessageSquare, UserPlus, Copy, QrCode } from "lucide-react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
+import QRCode from "qrcode"
 import {
   Dialog,
   DialogContent,
@@ -120,6 +121,9 @@ export function MessengerInterface() {
   const [isChatSearchOpen, setIsChatSearchOpen] = useState(false)
   const [chatSearchQuery, setChatSearchQuery] = useState("")
   const [userHash, setUserHash] = useState<string>("")
+  const [isShareOpen, setIsShareOpen] = useState(false)
+  const [shareQrUrl, setShareQrUrl] = useState("")
+  const [isSharing, setIsSharing] = useState(false)
 
   useEffect(() => {
     const deriveHash = async () => {
@@ -140,6 +144,26 @@ export function MessengerInterface() {
     }
     deriveHash()
   }, [])
+
+  useEffect(() => {
+    let isMounted = true
+    const generateShareQr = async () => {
+      if (!userHash) {
+        setShareQrUrl("")
+        return
+      }
+      try {
+        const url = await QRCode.toDataURL(userHash, { margin: 1, width: 220 })
+        if (isMounted) setShareQrUrl(url)
+      } catch (e) {
+        console.error("Failed to generate QR code", e)
+      }
+    }
+    generateShareQr()
+    return () => {
+      isMounted = false
+    }
+  }, [userHash])
 
   const handleAddUser = () => {
     const trimmedHash = newUserHash.trim()
@@ -223,6 +247,49 @@ export function MessengerInterface() {
     localStorage.removeItem("messenger_seed_verified")
     localStorage.removeItem("userSeedPhrase")
     window.location.reload()
+  }
+
+  const handleCopyUserHash = async () => {
+    if (!userHash) return
+    await navigator.clipboard.writeText(userHash)
+  }
+
+  const handleShareAccount = async () => {
+    if (!userHash || isSharing) return
+
+    const shareData: ShareData = {
+      title: "SecureChat аккаунт",
+      text: `Мой ID (hash): ${userHash}`,
+    }
+
+    if (shareQrUrl) {
+      try {
+        const response = await fetch(shareQrUrl)
+        const blob = await response.blob()
+        const file = new File([blob], "securechat-qr.png", {
+          type: blob.type || "image/png",
+        })
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          shareData.files = [file]
+        }
+      } catch (error) {
+        console.error("Failed to prepare QR file for sharing", error)
+      }
+    }
+
+    if (!navigator.share) return
+
+    try {
+      setIsSharing(true)
+      await navigator.share(shareData)
+      setIsShareOpen(false)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return
+      if (error instanceof DOMException && error.name === "InvalidStateError") return
+      console.error("Failed to share account", error)
+    } finally {
+      setIsSharing(false)
+    }
   }
 
   const hasContacts = contacts.length > 0
@@ -347,22 +414,81 @@ export function MessengerInterface() {
                   {userHash ? `${userHash.slice(0, 4)}...${userHash.slice(-4)}` : "Deriving..."}
                 </p>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="hover:bg-muted shrink-0">
-                    <MoreVertical className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" side="top" className="w-48">
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="cursor-pointer"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Выход</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center gap-1 shrink-0">
+                <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hover:bg-muted">
+                      <QrCode className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[440px]">
+                    <DialogHeader>
+                      <DialogTitle>Поделиться аккаунтом</DialogTitle>
+                      <DialogDescription>
+                        Сканируйте QR или скопируйте ID, чтобы добавить вас в контакты.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-2">
+                      <div className="flex items-center justify-center">
+                        {shareQrUrl ? (
+                          <img
+                            src={shareQrUrl}
+                            alt="QR-код аккаунта"
+                            className="h-44 w-44 rounded-lg border border-border bg-white p-2"
+                          />
+                        ) : (
+                          <div className="h-44 w-44 rounded-lg border border-border bg-muted/50 flex items-center justify-center text-xs text-muted-foreground">
+                            Генерация QR...
+                          </div>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="share-hash">ID (hash)</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="share-hash"
+                            value={userHash}
+                            readOnly
+                            disabled
+                            className="font-mono text-xs"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopyUserHash}
+                            disabled={!userHash}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleShareAccount}
+                      className="w-full"
+                      disabled={!userHash || !shareQrUrl || isSharing}
+                    >
+                      {isSharing ? "Поделиться..." : "Поделиться"}
+                    </Button>
+                  </DialogContent>
+                </Dialog>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hover:bg-muted shrink-0">
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" side="top" className="w-48">
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Выход</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </div>
