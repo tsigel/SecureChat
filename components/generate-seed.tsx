@@ -3,21 +3,38 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Copy, Check, Eye, EyeOff } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Copy, Check } from "lucide-react"
 
 interface GenerateSeedProps {
   seedPhrase: string[]
   onNext: () => void
+  onSeedChange: (seed: string[]) => void
+  onRegenerate: () => void
+  onBack?: () => void
+  onCancel?: () => void
 }
 
-export function GenerateSeed({ seedPhrase, onNext }: GenerateSeedProps) {
+export function GenerateSeed({
+  seedPhrase,
+  onNext,
+  onSeedChange,
+  onRegenerate,
+  onBack,
+  onCancel,
+}: GenerateSeedProps) {
   const [copied, setCopied] = useState(false)
-  const [isVisible, setIsVisible] = useState(true)
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(seedPhrase.join(" "))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleWordChange = (index: number, value: string) => {
+    const nextSeed = [...seedPhrase]
+    nextSeed[index] = value.toLowerCase().trim()
+    onSeedChange(nextSeed)
   }
 
   return (
@@ -34,39 +51,29 @@ export function GenerateSeed({ seedPhrase, onNext }: GenerateSeedProps) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">Ваша seed-фраза:</p>
-            <Button variant="ghost" size="sm" onClick={() => setIsVisible(!isVisible)} className="gap-2">
-              {isVisible ? (
-                <>
-                  <EyeOff className="h-4 w-4" />
-                  Скрыть
-                </>
-              ) : (
-                <>
-                  <Eye className="h-4 w-4" />
-                  Показать
-                </>
-              )}
+            <Button variant="outline" size="sm" onClick={onRegenerate}>
+              Сгенерировать другие фразы
             </Button>
           </div>
 
-          <div className="bg-secondary/50 border border-border rounded-lg p-6">
-            {isVisible ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {seedPhrase.map((word, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-2 bg-background border border-border rounded-md p-3"
-                  >
-                    <span className="text-xs text-muted-foreground font-mono w-6">{index + 1}.</span>
-                    <span className="text-sm font-medium text-foreground font-mono">{word}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-sm text-muted-foreground">Фраза скрыта</p>
-              </div>
-            )}
+          <div className="p-4 border border-border rounded-lg bg-secondary/50">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {seedPhrase.map((word, index) => (
+                <div key={index} className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono pointer-events-none">
+                    {index + 1}.
+                  </span>
+                  <Input
+                    value={word}
+                    onChange={(e) => handleWordChange(index, e.target.value)}
+                    placeholder="слово"
+                    className="pl-10 font-mono"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           <Button variant="outline" onClick={handleCopy} className="w-full gap-2 bg-transparent">
@@ -84,7 +91,7 @@ export function GenerateSeed({ seedPhrase, onNext }: GenerateSeedProps) {
           </Button>
         </div>
 
-        <div className="space-y-4 pt-4">
+        <div className="space-y-4">
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
             <p className="text-sm text-destructive font-medium">⚠️ Важно!</p>
             <ul className="text-sm text-destructive/90 mt-2 space-y-1 list-disc list-inside">
@@ -94,9 +101,23 @@ export function GenerateSeed({ seedPhrase, onNext }: GenerateSeedProps) {
             </ul>
           </div>
 
-          <Button onClick={onNext} className="w-full">
-            Я записал seed-фразу, продолжить
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            
+            {onBack && (
+              <Button variant="outline" onClick={onBack} className="w-full sm:flex-1">
+                Назад
+              </Button>
+            )}
+
+            {onCancel && (
+              <Button variant="ghost" onClick={onCancel} className="w-full sm:flex-1">
+                Отмена
+              </Button>
+            )}
+                        <Button onClick={onNext} className="w-full sm:flex-1">
+              Я записал seed-фразу, продолжить
+            </Button>
+          </div>
         </div>
       </Card>
     </div>

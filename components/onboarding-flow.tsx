@@ -1,28 +1,42 @@
 "use client"
 
-import { useState } from "react"
-import { CreateAccount } from "./create-account"
+import { useState, useEffect } from "react"
 import { GenerateSeed } from "./generate-seed"
 import { ConfirmSeed } from "./confirm-seed"
+import { generateSeedPhrase } from "@/lib/seed"
 
-type OnboardingStep = "welcome" | "generate" | "confirm"
+type OnboardingStep = "generate" | "confirm"
 
 interface OnboardingFlowProps {
   onComplete: () => void
+  onCancel?: () => void
 }
 
-export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
-  const [step, setStep] = useState<OnboardingStep>("welcome")
+export function OnboardingFlow({ onComplete, onCancel }: OnboardingFlowProps) {
+  const [step, setStep] = useState<OnboardingStep>("generate")
   const [seedPhrase, setSeedPhrase] = useState<string[]>([])
 
-  const handleGenerateSeed = (seed: string[]) => {
+  useEffect(() => {
+    const seed = generateSeedPhrase()
     setSeedPhrase(seed)
     localStorage.setItem("messenger_seed", JSON.stringify(seed))
-    setStep("generate")
+  }, [])
+
+  const updateSeedPhrase = (seed: string[]) => {
+    setSeedPhrase(seed)
+    localStorage.setItem("messenger_seed", JSON.stringify(seed))
+  }
+
+  const handleRegenerateSeed = () => {
+    updateSeedPhrase(generateSeedPhrase())
   }
 
   const handleConfirmSeed = () => {
     setStep("confirm")
+  }
+
+  const handleBackToGenerate = () => {
+    setStep("generate")
   }
 
   const handleComplete = () => {
@@ -30,13 +44,21 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     onComplete()
   }
 
-  if (step === "welcome") {
-    return <CreateAccount onNext={handleGenerateSeed} />
+  if (seedPhrase.length === 0) {
+    return null // Or a loading spinner
   }
 
   if (step === "generate") {
-    return <GenerateSeed seedPhrase={seedPhrase} onNext={handleConfirmSeed} />
+    return (
+      <GenerateSeed
+        seedPhrase={seedPhrase}
+        onNext={handleConfirmSeed}
+        onSeedChange={updateSeedPhrase}
+        onRegenerate={handleRegenerateSeed}
+        onCancel={onCancel}
+      />
+    )
   }
 
-  return <ConfirmSeed seedPhrase={seedPhrase} onComplete={handleComplete} />
+  return <ConfirmSeed seedPhrase={seedPhrase} onComplete={handleComplete} onBack={handleBackToGenerate} />
 }

@@ -4,6 +4,7 @@ import type React from "react"
 
 import { Lock, Shield, Key, MessageSquare, Eye, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SpinIcon } from "@/components/ui/spin-icon"
 
 interface LandingPageProps {
   onCreateAccount: () => void
@@ -18,9 +19,7 @@ export function LandingPage({ onCreateAccount, onLogin }: LandingPageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-white" />
-              </div>
+              <SpinIcon width={38} height={32} className="shrink-0" />
               <span className="text-lg font-semibold">SecureChat</span>
             </div>
             <div className="flex items-center gap-3">
@@ -43,7 +42,7 @@ export function LandingPage({ onCreateAccount, onLogin }: LandingPageProps) {
       <section className="pt-24 pb-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-950 border border-emerald-800 rounded-full text-emerald-400 text-sm mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[oklch(0.696_0.17_162.48/0.1)] border border-[oklch(0.696_0.17_162.48/0.5)] rounded-full text-[oklch(0.696_0.17_162.48)] text-sm mb-6">
               <Lock className="w-3 h-3" />
               <span>Защита на уровне криптокошелька</span>
             </div>
@@ -75,7 +74,7 @@ export function LandingPage({ onCreateAccount, onLogin }: LandingPageProps) {
 
             {/* Visual Demo */}
             <div className="mt-16 relative">
-              <div className="absolute inset-0 bg-emerald-600/10 blur-3xl rounded-full" />
+              <div className="absolute inset-0 bg-neutral-600/10 blur-3xl rounded-full" />
               <div className="relative bg-neutral-950 border border-neutral-800 rounded-2xl p-8 max-w-3xl mx-auto">
                 <div className="grid grid-cols-3 gap-3 mb-6">
                   {[
@@ -163,7 +162,7 @@ export function LandingPage({ onCreateAccount, onLogin }: LandingPageProps) {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button
                 onClick={onCreateAccount}
-                className="w-full sm:w-auto h-12 px-8 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-medium"
+                className="w-full sm:w-auto h-12 px-8 bg-neutral-600 hover:bg-neutral-700 text-white text-base font-medium"
               >
                 Создать аккаунт
               </Button>
@@ -184,9 +183,7 @@ export function LandingPage({ onCreateAccount, onLogin }: LandingPageProps) {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-white" />
-              </div>
+              <SpinIcon width={38} height={32} className="shrink-0" />
               <span className="text-lg font-semibold">SecureChat</span>
             </div>
             <p className="text-neutral-500 text-sm">© 2025 SecureChat. Защищенное общение для всех.</p>
@@ -208,7 +205,7 @@ function FeatureCard({
 }) {
   return (
     <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 hover:border-neutral-700 transition-colors">
-      <div className="w-12 h-12 bg-emerald-950 border border-emerald-900 rounded-xl flex items-center justify-center text-emerald-500 mb-4">
+      <div className="w-12 h-12 bg-[oklch(0.696_0.17_162.48/0.1)] border border-[oklch(0.696_0.17_162.48/0.3)] rounded-xl flex items-center justify-center text-[oklch(0.696_0.17_162.48)] mb-4">
         {icon}
       </div>
       <h3 className="text-xl font-semibold mb-2">{title}</h3>

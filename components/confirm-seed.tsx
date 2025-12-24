@@ -8,9 +8,10 @@ import { X } from "lucide-react"
 interface ConfirmSeedProps {
   seedPhrase: string[]
   onComplete: () => void
+  onBack?: () => void
 }
 
-export function ConfirmSeed({ seedPhrase, onComplete }: ConfirmSeedProps) {
+export function ConfirmSeed({ seedPhrase, onComplete, onBack }: ConfirmSeedProps) {
   const [selectedWords, setSelectedWords] = useState<string[]>([])
   const [shuffledWords, setShuffledWords] = useState<string[]>([])
   const [error, setError] = useState(false)
@@ -106,9 +107,17 @@ export function ConfirmSeed({ seedPhrase, onComplete }: ConfirmSeedProps) {
           </div>
         </div>
 
-        <Button onClick={handleVerify} disabled={!isComplete} className="w-full">
-          Подтвердить и продолжить
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4">
+
+          {onBack && (
+            <Button variant="ghost" onClick={onBack} className="w-full sm:flex-1">
+              Назад
+            </Button>
+          )}
+          <Button onClick={handleVerify} disabled={!isComplete} className="w-full sm:flex-1">
+            Подтвердить и продолжить
+          </Button>
+          </div>
       </Card>
     </div>
   )

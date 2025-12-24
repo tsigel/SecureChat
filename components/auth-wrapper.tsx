@@ -15,7 +15,7 @@ export function AuthWrapper({ onComplete }: AuthWrapperProps) {
   const [mode, setMode] = useState<AuthMode>("landing")
 
   if (mode === "create") {
-    return <OnboardingFlow onComplete={onComplete} />
+    return <OnboardingFlow onComplete={onComplete} onCancel={() => setMode("landing")} />
   }
 
   if (mode === "login") {

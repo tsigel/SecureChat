@@ -1,66 +1,98 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useCallback, memo } from "react"
 import { Send, Paperclip, Smile } from "lucide-react"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 
 interface MessageInputProps {
   onSendMessage: (text: string) => void
 }
 
-export function MessageInput({ onSendMessage }: MessageInputProps) {
+const EMOJI_LIST = ["😀", "😂", "😍", "🥰", "😎", "🤔", "👍", "❤️", "🔥", "✨", "🎉", "💯", "👋", "🙏", "💪", "🤝"]
+
+export const MessageInput = memo(function MessageInput({ onSendMessage }: MessageInputProps) {
   const [message, setMessage] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (message.trim()) {
       onSendMessage(message.trim())
       setMessage("")
     }
-  }
+  }, [message, onSendMessage])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e)
+      if (message.trim()) {
+        onSendMessage(message.trim())
+        setMessage("")
+      }
     }
-  }
+  }, [message, onSendMessage])
+
+  const insertEmoji = useCallback((emoji: string) => {
+    setMessage((prev) => prev + emoji)
+  }, [])
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value)
+  }, [])
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-border bg-card">
-      <div className="max-w-4xl mx-auto p-4">
-        <div className="flex items-end gap-2">
-          <Button type="button" variant="ghost" size="icon" className="shrink-0 hover:bg-muted">
-            <Paperclip className="h-5 w-5" />
+    <form onSubmit={handleSubmit} className="bg-card">
+      <div className="p-4 pt-1">
+        <div className="flex items-end gap-2 bg-secondary rounded-2xl px-3 py-2">
+          <Button type="button" variant="ghost" size="icon" className="shrink-0 h-8 w-8 hover:bg-muted/50">
+            <Paperclip className="h-5 w-5 text-muted-foreground" />
           </Button>
 
-          <div className="flex-1 relative">
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Написать сообщение..."
-              className="min-h-[44px] max-h-32 resize-none pr-10 bg-secondary border-0 focus-visible:ring-1"
-              rows={1}
-            />
-            <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1 hover:bg-muted/50">
-              <Smile className="h-5 w-5" />
+          <Textarea
+            value={message}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Написать сообщение..."
+            className="min-h-[36px] max-h-32 resize-none bg-transparent border-0 focus-visible:ring-0 py-2 px-0"
+            rows={1}
+          />
+
+          <div className="flex items-center gap-1 shrink-0">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/50">
+                  <Smile className="h-5 w-5 text-muted-foreground" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="end">
+                <div className="grid grid-cols-8 gap-1">
+                  {EMOJI_LIST.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => insertEmoji(emoji)}
+                      className="h-8 w-8 flex items-center justify-center text-lg hover:bg-muted rounded cursor-pointer"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!message.trim()}
+              className="shrink-0 h-8 w-8 bg-[oklch(0.696_0.17_162.48)] hover:bg-[oklch(0.646_0.17_162.48)] text-white rounded-full"
+            >
+              <Send className="h-4 w-4" />
             </Button>
           </div>
-
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!message.trim()}
-            className="shrink-0 bg-primary hover:bg-primary/90"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
         </div>
       </div>
     </form>
   )
-}
+})
