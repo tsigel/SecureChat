@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { MessengerInterface } from "@/components/messenger-interface"
 import { AuthWrapper } from "@/components/auth-wrapper"
 
-export default function Page() {
+export default function App() {
   const [hasAccount, setHasAccount] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 

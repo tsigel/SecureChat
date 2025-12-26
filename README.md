@@ -1,6 +1,6 @@
 # Messenger Interface
 
-A modern messenger interface application built with Next.js.
+A modern messenger interface application built with Vite + React.
 
 ## Getting Started
 
@@ -16,13 +16,11 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:5173](http://localhost:5173) with your browser to see the result.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about Vite, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- [Vite Documentation](https://vitejs.dev/guide/) - learn about Vite features and API.
+- [React Documentation](https://react.dev/learn) - learn about React.

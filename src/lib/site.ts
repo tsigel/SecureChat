@@ -1,5 +1,5 @@
-const defaultUrl = "http://localhost:3000"
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? defaultUrl).replace(/\/$/, "")
+const defaultUrl = "http://localhost:5173"
+const siteUrl = (import.meta.env.VITE_SITE_URL ?? defaultUrl).replace(/\/$/, "")
 
 export const siteConfig = {
   name: "SecureChat",
