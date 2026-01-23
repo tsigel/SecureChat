@@ -1,26 +1,61 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { MessengerInterface } from "@/components/messenger-interface"
-import { AuthWrapper } from "@/components/auth-wrapper"
+import { LandingPage } from "@/pages/LandingPage"
+import { LoginPage } from "@/pages/LoginPage"
+import { MessengerPage } from "@/pages/MessengerPage"
+import { SignupPage } from "@/pages/SignupPage"
+import { ProtectedRoute } from "@/components/common/ProtectedRoute"
+import { $hasUser } from "@/model/user"
+import { useUnit } from "effector-react"
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom"
 
 export default function App() {
-  const [hasAccount, setHasAccount] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+    const hasUser = useUnit($hasUser)
 
-  useEffect(() => {
-    const account = localStorage.getItem("messenger_seed_verified")
-    setHasAccount(!!account)
-    setIsLoading(false)
-  }, [])
+    return (
+        <Routes>
+            <Route path="/" element={<LandingRoute />} />
+            <Route path="/auth/signup" element={<SignupRoute />} />
+            <Route path="/auth/login" element={<LoginRoute />} />
+            <Route
+                path="/app"
+                element={
+                    <ProtectedRoute hasUser={hasUser}>
+                        <MessengerPage />
+                    </ProtectedRoute>
+                }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+    )
+}
 
-  if (isLoading) {
-    return null
-  }
+function LandingRoute() {
+    const navigate = useNavigate()
+    const hasUser = useUnit($hasUser)
 
-  if (!hasAccount) {
-    return <AuthWrapper onComplete={() => setHasAccount(true)} />
-  }
+    if (hasUser) return <Navigate to="/app" replace />
 
-  return <MessengerInterface />
+    return (
+        <LandingPage
+            onCreateAccount={() => navigate("/auth/signup")}
+            onLogin={() => navigate("/auth/login")}
+        />
+    )
+}
+
+function SignupRoute() {
+    const navigate = useNavigate()
+    const hasUser = useUnit($hasUser)
+
+    if (hasUser) return <Navigate to="/app" replace />
+
+    return <SignupPage onCancel={() => navigate("/")} onComplete={() => navigate("/app")} />
+}
+
+function LoginRoute() {
+    const navigate = useNavigate()
+    const hasUser = useUnit($hasUser)
+
+    if (hasUser) return <Navigate to="/app" replace />
+
+    return <LoginPage onBack={() => navigate("/")} onLogin={() => navigate("/app")} />
 }

@@ -5,7 +5,6 @@
       "dom.iterable",
       "esnext"
     ],
-    "allowJs": true,
     "target": "ES6",
     "skipLibCheck": true,
     "strict": true,
@@ -18,6 +17,10 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "incremental": true,
+    "typeRoots": [
+      "./node_modules/@types",
+      "./vendors"
+    ],
     "paths": {
       "@/*": [
         "./src/*"
@@ -27,7 +30,8 @@
   "include": [
     "vite-env.d.ts",
     "src/**/*.ts",
-    "src/**/*.tsx"
+    "src/**/*.tsx",
+    "vendors/**/*.d.ts"
   ],
   "exclude": [
     "node_modules"

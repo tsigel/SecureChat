@@ -1,8 +1,15 @@
-import { ArrayEntry } from '../../types/utils';
+// Расширение модуля ramda с переопределением типов для nthArg
+// Используем правильный синтаксис расширения модуля TypeScript
 
-export module 'ramda' {
+// Сначала импортируем все типы из оригинального модуля
+import 'ramda';
 
-    export function head<T>(list: Array<T>): T | undefined;
-    export function always<T>(data: T): () => T;
-
+// Затем расширяем модуль, переопределяя только nthArg
+declare module 'ramda' {
+    // Переопределенные функции с улучшенными типами
+    export function nthArg<T>(n: 0): (a: T) => T;
+    export function nthArg<T>(n: 1): (_, a: T) => T;
+    export function nthArg<T>(n: 2): (_, _, a: T) => T;
+    export function nthArg<T>(n: 3): (_, _, _, a: T) => T;
+    
 }

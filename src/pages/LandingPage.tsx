@@ -4,7 +4,7 @@ import type React from "react"
 
 import { Lock, Shield, Key, MessageSquare, Eye, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { SpinIcon } from "@/components/ui/spin-icon"
+import { SpinIcon } from "@/components/ui/SpinIcon"
 
 interface LandingPageProps {
   onCreateAccount: () => void
