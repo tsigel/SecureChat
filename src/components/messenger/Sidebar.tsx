@@ -2,7 +2,7 @@ import { SidebarHeader } from './SidebarHeader';
 import { SidebarSearch } from './SidebarSearch';
 import { CurrentAccountBlock } from './CurrentAccountBlock';
 import { useUnit } from 'effector-react';
-import { $pk, logOut } from '@/model/user';
+import { $pk, logOut, $userName } from '@/model/user';
 import { useCallback } from 'react';
 import { ContactsList } from '@/components/messenger/contacts/ContactsList';
 
@@ -16,7 +16,7 @@ export function Sidebar({
                             onCloseSidebar,
                         }: SidebarProps) {
     const userHash = useUnit($pk);
-    const userName = 'Vasia';
+    const userName = useUnit($userName);
     const localLogOut = useUnit(logOut);
 
     const localClearAllChats = useCallback(() => {

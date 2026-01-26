@@ -4,8 +4,6 @@ import { Card } from '@/components/ui/card';
 import { X } from 'lucide-react';
 import { SEED_WORDS_COUNT } from '@/constants';
 import { seedToKeyPair } from '@/utils/seedHelpers';
-import { useUnit } from 'effector-react';
-import { login } from '@/model/user';
 
 interface ConfirmSeedProps {
     seedPhrase: string[];
@@ -17,7 +15,6 @@ export function ConfirmSeed({ seedPhrase, onBack, onComplete }: ConfirmSeedProps
     const [selectedWords, setSelectedWords] = useState<string[]>([]);
     const [shuffledWords, setShuffledWords] = useState<string[]>([]);
     const [error, setError] = useState(false);
-    const localLogin = useUnit(login);
 
     useEffect(() => {
         // Shuffle the seed phrase words
@@ -54,7 +51,6 @@ export function ConfirmSeed({ seedPhrase, onBack, onComplete }: ConfirmSeedProps
                 setError(true);
                 return;
             }
-            localLogin(seed);
 
             onComplete?.();
         } else {

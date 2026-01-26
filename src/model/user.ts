@@ -2,12 +2,45 @@ import { appD } from '@/model/app';
 import { KeyPair, seedToKeyPair } from '@/utils/seedHelpers';
 import { isNotNil, nthArg, pipe, prop } from 'ramda';
 import { combine, sample } from 'effector';
-import sodium from 'libsodium-wrappers';
+import sodium from 'libsodium-wrappers-sumo';
 import { API_URL } from '@/constants';
 import { parseFetchResponse } from '@/lib/parseFetchResponse';
 import { fromResult } from '@/lib/fromResult';
 
 const SIGN_PREFIX = 'login:';
+const SESSION_KEY = 'securechat_active_session';
+const SESSION_TTL = 3600 * 1000; // 1 час
+
+const getStoredSession = () => {
+    try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (Date.now() > data.expiresAt) {
+            localStorage.removeItem(SESSION_KEY);
+            return null;
+        }
+        return data;
+    } catch (e) {
+        return null;
+    }
+};
+
+const initialSession = getStoredSession();
+
+const restoreSessionFx = appD.createEffect(async () => {
+    const session = getStoredSession();
+    if (!session) return null;
+    
+    await sodium.ready;
+    const result = seedToKeyPair(session.seed);
+    if (result.isErr()) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+    }
+    
+    return { seed: session.seed, name: session.name, pair: result.value };
+});
 
 export const authFx = appD.createEffect(async (pair: KeyPair) => {
     await sodium.ready;
@@ -30,22 +63,129 @@ export const authFx = appD.createEffect(async (pair: KeyPair) => {
 });
 
 export const logOut = appD.createEvent();
+logOut.watch(() => localStorage.removeItem(SESSION_KEY));
+
 export const login = appD.createEvent<string>();
+export const updateUserName = appD.createEvent<string>();
+export const signup = appD.createEvent<{ seed: string; name: string; password: string }>();
+export const loginWithPassword = appD.createEvent<{ account: any; password: string }>();
 
 const loginFx = appD.createEffect((seed: string) => {
     return fromResult(seedToKeyPair(seed));
 });
 
+const loginWithPasswordFx = appD.createEffect(async ({ account, password }: { account: any; password: string }) => {
+    try {
+        await sodium.ready;
+        
+        const salt = sodium.from_hex(account.salt);
+        const key = sodium.crypto_pwhash(
+            sodium.crypto_secretbox_KEYBYTES,
+            password,
+            salt,
+            sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+            sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
+            sodium.crypto_pwhash_ALG_DEFAULT
+        );
+        
+        const seedBytes = sodium.crypto_secretbox_open_easy(
+            sodium.from_hex(account.encryptedSeed),
+            sodium.from_hex(account.nonce),
+            key
+        );
+        const seed = new TextDecoder().decode(seedBytes);
+        return { seed, name: account.name };
+    } catch (e) {
+        console.error('Login error:', e);
+        throw new Error('Неверный пароль');
+    }
+});
+
+const saveAccountFx = appD.createEffect(async ({ seed, name, password }: { seed: string; name: string; password: string }) => {
+    try {
+        console.log('Starting account encryption...');
+        await sodium.ready;
+        
+        const pairResult = seedToKeyPair(seed);
+        if (pairResult.isErr()) throw new Error('Неверная seed-фраза');
+        const pair = pairResult.value;
+
+        console.log('Deriving key from password...');
+        const salt = sodium.randombytes_buf(sodium.crypto_pwhash_SALTBYTES);
+        const key = sodium.crypto_pwhash(
+            sodium.crypto_secretbox_KEYBYTES,
+            password,
+            salt,
+            sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+            sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
+            sodium.crypto_pwhash_ALG_DEFAULT
+        );
+
+        console.log('Key derived, encrypting seed...');
+        const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+        const encryptedSeed = sodium.crypto_secretbox_easy(
+            new TextEncoder().encode(seed), 
+            nonce, 
+            key
+        );
+        
+        const account = {
+            name,
+            salt: sodium.to_hex(salt),
+            nonce: sodium.to_hex(nonce),
+            encryptedSeed: sodium.to_hex(encryptedSeed),
+            publicKey: sodium.to_hex(pair.publicKey)
+        };
+
+        const savedAccounts = JSON.parse(localStorage.getItem('securechat_accounts') || '[]');
+        const filteredAccounts = savedAccounts.filter((a: any) => a.publicKey !== account.publicKey);
+        filteredAccounts.push(account);
+        localStorage.setItem('securechat_accounts', JSON.stringify(filteredAccounts));
+        
+        console.log('Account saved successfully.');
+        return { seed, name, pair };
+    } catch (e: any) {
+        console.error('Signup error:', e);
+        throw e;
+    }
+});
+
+export const $userName = appD.createStore<string>('Vasya')
+    .on(updateUserName, (_, name) => name)
+    .on(saveAccountFx.doneData, (_, { name }) => name)
+    .on(loginWithPasswordFx.doneData, (_, { name }) => name)
+    .on(restoreSessionFx.doneData, (state, data) => data?.name ?? state)
+    .reset(logOut);
+
 export const $seed = appD.createStore<string | null>(null)
     .on(loginFx.done, pipe(nthArg(1), prop('params')))
+    .on(saveAccountFx.doneData, (_, { seed }) => seed)
+    .on(loginWithPasswordFx.doneData, (_, { seed }) => seed)
+    .on(restoreSessionFx.doneData, (state, data) => data?.seed ?? state)
     .reset(logOut);
 
 export const $keyPair = appD.createStore<KeyPair | null>(null)
     .on(loginFx.doneData, nthArg(1))
+    .on(saveAccountFx.doneData, (_, { pair }) => pair)
+    .on(loginWithPasswordFx.doneData, (_, { seed }) => {
+        const result = seedToKeyPair(seed);
+        return result.isOk() ? result.value : null;
+    })
+    .on(restoreSessionFx.doneData, (state, data) => data?.pair ?? state)
     .reset(logOut);
 
 export const $token = appD.createStore<string | null>(null)
     .on(authFx.doneData, pipe(nthArg(1), prop('token')))
+    .reset(logOut);
+
+export const $signupError = appD.createStore<string | null>(null)
+    .on(saveAccountFx.failData, (_, error) => error.message)
+    .on(signup, () => null)
+    .reset(logOut);
+
+export const $loginError = appD.createStore<string | null>(null)
+    .on(loginWithPasswordFx.failData, (_, error) => error.message)
+    .on(loginWithPassword, () => null)
     .reset(logOut);
 
 export const $hasUser = combine($keyPair, Boolean);
@@ -68,3 +208,26 @@ sample({
     clock: login,
     target: loginFx
 });
+
+sample({
+    clock: signup,
+    target: saveAccountFx
+});
+
+sample({
+    clock: loginWithPassword,
+    target: loginWithPasswordFx
+});
+
+// Сохранение сессии
+sample({
+    clock: [loginFx.done, saveAccountFx.done, loginWithPasswordFx.done],
+    source: { seed: $seed, name: $userName },
+    filter: ({ seed }) => !!seed,
+    fn: ({ seed, name }) => {
+        const expiresAt = Date.now() + SESSION_TTL;
+        localStorage.setItem(SESSION_KEY, JSON.stringify({ seed, name, expiresAt }));
+    }
+});
+
+restoreSessionFx();

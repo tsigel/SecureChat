@@ -15,7 +15,7 @@ interface CurrentAccountBlockProps {
     onLogout: () => void;
 }
 
-export function CurrentAccountBlock({ userHash, userName = 'Vasya', onLogout }: CurrentAccountBlockProps) {
+export function CurrentAccountBlock({ userHash, userName = 'User', onLogout }: CurrentAccountBlockProps) {
     return (
         <div className="mt-auto p-3 border-t border-border">
             <div className="flex items-center gap-3">

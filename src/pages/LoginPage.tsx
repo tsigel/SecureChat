@@ -1,24 +1,33 @@
 import type React from 'react'
 import { useState, useCallback } from 'react'
 import { X } from 'lucide-react'
-import { useUnit } from 'effector-react'
 
 import { SEED_WORDS_COUNT } from '@/constants'
 import { seedToKeyPair } from '@/utils/seedHelpers'
-import { login } from '@/model/user'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { ChooseAccount } from '@/components/auth/ChooseAccount'
+import { EnterPassword } from '@/components/auth/EnterPassword'
+import { CreateName } from '@/components/auth/CreateName'
+import { CreatePassword } from '@/components/auth/CreatePassword'
 
 interface LoginSeedProps {
     onLogin: () => void;
     onBack: () => void;
 }
 
+type LoginStep = 'choose_account' | 'enter_password' | 'enter_seed' | 'create_name' | 'create_password';
+
 export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
+    const [step, setStep] = useState<LoginStep>('choose_account');
+    const [selectedAccount, setSelectedAccount] = useState<any>(null);
+    const [userName, setUserName] = useState('');
     const [seedWords, setSeedWords] = useState<string[]>(Array(SEED_WORDS_COUNT).fill(''));
     const [error, setError] = useState('');
-    const localLogin = useUnit(login);
+    const [accounts, setAccounts] = useState<any[]>(() => 
+        JSON.parse(localStorage.getItem('securechat_accounts') || '[]')
+    );
 
     const handleWordChange = useCallback((index: number, value: string) => {
         setSeedWords((prev) => {
@@ -40,7 +49,7 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
         }
     }, []);
 
-    const handleLogin = useCallback(() => {
+    const handleSeedSubmit = useCallback(() => {
         const allFilled = seedWords.every((word) => word.length > 0);
 
         if (!allFilled) {
@@ -49,7 +58,6 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
         }
 
         const seed = seedWords.join(' ');
-
         const keyPair = seedToKeyPair(seed);
 
         if (keyPair.isErr()) {
@@ -57,15 +65,78 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
             return;
         }
 
-        localLogin(seed);
-        onLogin();
-    }, [seedWords, onLogin]);
+        setStep('create_name');
+    }, [seedWords]);
+
+    const handleSelectAccount = useCallback((account: any) => {
+        setSelectedAccount(account);
+        setStep('enter_password');
+    }, []);
+
+    const handleDeleteAccount = useCallback((account: any) => {
+        const updatedAccounts = accounts.filter((a: any) => a.publicKey !== account.publicKey);
+        localStorage.setItem('securechat_accounts', JSON.stringify(updatedAccounts));
+        setAccounts(updatedAccounts);
+    }, [accounts]);
+
+    const handleBackToChoose = useCallback(() => {
+        setStep('choose_account');
+        setSelectedAccount(null);
+    }, []);
+
+    const handleNameNext = useCallback((name: string) => {
+        setUserName(name);
+        setStep('create_password');
+    }, []);
+
+    if (step === 'choose_account') {
+        return (
+            <ChooseAccount 
+                accounts={accounts}
+                onSelect={handleSelectAccount}
+                onDelete={handleDeleteAccount}
+                onLoginWithSeed={() => setStep('enter_seed')}
+                onBack={onBack}
+            />
+        );
+    }
+
+    if (step === 'enter_password') {
+        return (
+            <EnterPassword 
+                account={selectedAccount}
+                onSuccess={onLogin}
+                onBack={handleBackToChoose}
+            />
+        );
+    }
+
+    if (step === 'create_name') {
+        return (
+            <CreateName 
+                seed={seedWords.join(' ')}
+                onNext={handleNameNext}
+                onBack={() => setStep('enter_seed')}
+            />
+        );
+    }
+
+    if (step === 'create_password') {
+        return (
+            <CreatePassword 
+                seed={seedWords.join(' ')}
+                name={userName}
+                onComplete={onLogin}
+                onBack={() => setStep('create_name')}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <Card className="w-full max-w-2xl p-8 space-y-6 bg-card border-border">
                 <div className="space-y-2">
-                    <h1 className="text-2xl font-semibold text-foreground">Вход в аккаунт</h1>
+                    <h1 className="text-2xl font-semibold text-foreground">Вход по seed-фразе</h1>
                     <p className="text-sm text-muted-foreground">Введите вашу seed-фразу из {SEED_WORDS_COUNT} слов для входа</p>
                 </div>
 
@@ -104,11 +175,11 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <Button onClick={onBack} variant="outline" className="w-full sm:flex-1">
+                    <Button onClick={() => setStep('choose_account')} variant="outline" className="w-full sm:flex-1">
                         Назад
                     </Button>
-                    <Button onClick={handleLogin} className="w-full sm:flex-1">
-                        Войти
+                    <Button onClick={handleSeedSubmit} className="w-full sm:flex-1">
+                        Далее
                     </Button>
                 </div>
 

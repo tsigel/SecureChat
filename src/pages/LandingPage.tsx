@@ -68,7 +68,7 @@ export function LandingPage({ onCreateAccount, onLogin }: LandingPageProps) {
                 variant="outline"
                 className="w-full sm:w-auto h-12 px-8 bg-transparent border-neutral-700 text-neutral-300 hover:bg-neutral-900 hover:text-white text-base font-medium"
               >
-                Войти по seed-фразе
+                Войти
               </Button>
             </div>
 

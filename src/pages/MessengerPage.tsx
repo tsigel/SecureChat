@@ -6,7 +6,6 @@ import { MessageList } from '@/components/messenger/MessageList';
 import { Sidebar } from '@/components/messenger/Sidebar';
 import { ChatHeader } from '@/components/messenger/ChatHeader';
 import { EmptyState } from '@/components/messenger/EmptyState';
-import { AddContactDialog } from '@/components/messenger/addContactDialog/AddContactDialog';
 import { $contacts, $selectedContact, addOrRenameContact, deleteContact } from '@/model/contacts';
 import { setOpenState } from '@/components/messenger/addContactDialog/addContactModel';
 
@@ -89,10 +88,11 @@ export function MessengerPage() {
             <MessageInput />
           </>
         ) : (
-          <EmptyState onAddUser={handleAddUser} />
+          <EmptyState 
+            onAddUser={handleAddUser} 
+            onToggleSidebar={handleToggleSidebar}
+          />
         )}
-
-        <AddContactDialog />
       </main>
 
       {isSidebarOpen && (
