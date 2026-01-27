@@ -2,11 +2,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { HashAvatar } from '@/components/common/HashAvatar';
 import { Key, Trash2 } from 'lucide-react';
+import type { StoredAccount } from '@/model/user';
 
 interface ChooseAccountProps {
-    accounts: any[];
-    onSelect: (account: any) => void;
-    onDelete: (account: any) => void;
+    accounts: StoredAccount[];
+    onSelect: (account: StoredAccount) => void;
+    onDelete: (account: StoredAccount) => void;
     onLoginWithSeed: () => void;
     onBack?: () => void;
 }

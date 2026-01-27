@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { HashAvatar } from '@/components/common/HashAvatar';
 import { useUnit } from 'effector-react';
-import { loginWithPassword, $loginError } from '@/model/user';
+import { loginWithPassword, $loginError, type StoredAccount } from '@/model/user';
 
 interface EnterPasswordProps {
-    account: any;
+    account: StoredAccount;
     onSuccess: () => void;
     onBack?: () => void;
 }
@@ -21,8 +21,9 @@ export function EnterPassword({ account, onSuccess, onBack }: EnterPasswordProps
     const handleLogin = useCallback(() => {
         if (password) {
             localLoginWithPassword({ account, password });
+            onSuccess();
         }
-    }, [account, password, localLoginWithPassword]);
+    }, [account, password, localLoginWithPassword, onSuccess]);
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">

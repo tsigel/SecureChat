@@ -11,6 +11,7 @@ import { ChooseAccount } from '@/components/auth/ChooseAccount'
 import { EnterPassword } from '@/components/auth/EnterPassword'
 import { CreateName } from '@/components/auth/CreateName'
 import { CreatePassword } from '@/components/auth/CreatePassword'
+import type { StoredAccount } from '@/model/user'
 
 interface LoginSeedProps {
     onLogin: () => void;
@@ -21,12 +22,12 @@ type LoginStep = 'choose_account' | 'enter_password' | 'enter_seed' | 'create_na
 
 export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
     const [step, setStep] = useState<LoginStep>('choose_account');
-    const [selectedAccount, setSelectedAccount] = useState<any>(null);
+    const [selectedAccount, setSelectedAccount] = useState<StoredAccount | null>(null);
     const [userName, setUserName] = useState('');
     const [seedWords, setSeedWords] = useState<string[]>(Array(SEED_WORDS_COUNT).fill(''));
     const [error, setError] = useState('');
-    const [accounts, setAccounts] = useState<any[]>(() => 
-        JSON.parse(localStorage.getItem('securechat_accounts') || '[]')
+    const [accounts, setAccounts] = useState<StoredAccount[]>(() => 
+        JSON.parse(localStorage.getItem('securechat_accounts') || '[]') as StoredAccount[]
     );
 
     const handleWordChange = useCallback((index: number, value: string) => {
@@ -68,13 +69,13 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
         setStep('create_name');
     }, [seedWords]);
 
-    const handleSelectAccount = useCallback((account: any) => {
+    const handleSelectAccount = useCallback((account: StoredAccount) => {
         setSelectedAccount(account);
         setStep('enter_password');
     }, []);
 
-    const handleDeleteAccount = useCallback((account: any) => {
-        const updatedAccounts = accounts.filter((a: any) => a.publicKey !== account.publicKey);
+    const handleDeleteAccount = useCallback((account: StoredAccount) => {
+        const updatedAccounts = accounts.filter((a) => a.publicKey !== account.publicKey);
         localStorage.setItem('securechat_accounts', JSON.stringify(updatedAccounts));
         setAccounts(updatedAccounts);
     }, [accounts]);
@@ -104,7 +105,7 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
     if (step === 'enter_password') {
         return (
             <EnterPassword 
-                account={selectedAccount}
+                account={selectedAccount as StoredAccount}
                 onSuccess={onLogin}
                 onBack={handleBackToChoose}
             />

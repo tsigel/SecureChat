@@ -7,40 +7,16 @@ import { API_URL } from '@/constants';
 import { parseFetchResponse } from '@/lib/parseFetchResponse';
 import { fromResult } from '@/lib/fromResult';
 
+export interface StoredAccount {
+    name: string;
+    salt: string;
+    nonce: string;
+    encryptedSeed: string;
+    publicKey: string;
+}
+
 const SIGN_PREFIX = 'login:';
-const SESSION_KEY = 'securechat_active_session';
-const SESSION_TTL = 3600 * 1000; // 1 час
 
-const getStoredSession = () => {
-    try {
-        const raw = localStorage.getItem(SESSION_KEY);
-        if (!raw) return null;
-        const data = JSON.parse(raw);
-        if (Date.now() > data.expiresAt) {
-            localStorage.removeItem(SESSION_KEY);
-            return null;
-        }
-        return data;
-    } catch (e) {
-        return null;
-    }
-};
-
-const initialSession = getStoredSession();
-
-const restoreSessionFx = appD.createEffect(async () => {
-    const session = getStoredSession();
-    if (!session) return null;
-    
-    await sodium.ready;
-    const result = seedToKeyPair(session.seed);
-    if (result.isErr()) {
-        localStorage.removeItem(SESSION_KEY);
-        return null;
-    }
-    
-    return { seed: session.seed, name: session.name, pair: result.value };
-});
 
 export const authFx = appD.createEffect(async (pair: KeyPair) => {
     await sodium.ready;
@@ -63,18 +39,16 @@ export const authFx = appD.createEffect(async (pair: KeyPair) => {
 });
 
 export const logOut = appD.createEvent();
-logOut.watch(() => localStorage.removeItem(SESSION_KEY));
-
 export const login = appD.createEvent<string>();
 export const updateUserName = appD.createEvent<string>();
 export const signup = appD.createEvent<{ seed: string; name: string; password: string }>();
-export const loginWithPassword = appD.createEvent<{ account: any; password: string }>();
+export const loginWithPassword = appD.createEvent<{ account: StoredAccount; password: string }>();
 
 const loginFx = appD.createEffect((seed: string) => {
     return fromResult(seedToKeyPair(seed));
 });
 
-const loginWithPasswordFx = appD.createEffect(async ({ account, password }: { account: any; password: string }) => {
+const loginWithPasswordFx = appD.createEffect(async ({ account, password }: { account: StoredAccount; password: string }) => {
     try {
         await sodium.ready;
         
@@ -129,7 +103,7 @@ const saveAccountFx = appD.createEffect(async ({ seed, name, password }: { seed:
             key
         );
         
-        const account = {
+        const account: StoredAccount = {
             name,
             salt: sodium.to_hex(salt),
             nonce: sodium.to_hex(nonce),
@@ -137,8 +111,8 @@ const saveAccountFx = appD.createEffect(async ({ seed, name, password }: { seed:
             publicKey: sodium.to_hex(pair.publicKey)
         };
 
-        const savedAccounts = JSON.parse(localStorage.getItem('securechat_accounts') || '[]');
-        const filteredAccounts = savedAccounts.filter((a: any) => a.publicKey !== account.publicKey);
+        const savedAccounts: StoredAccount[] = JSON.parse(localStorage.getItem('securechat_accounts') || '[]');
+        const filteredAccounts = savedAccounts.filter((a) => a.publicKey !== account.publicKey);
         filteredAccounts.push(account);
         localStorage.setItem('securechat_accounts', JSON.stringify(filteredAccounts));
         
@@ -154,14 +128,12 @@ export const $userName = appD.createStore<string>('Vasya')
     .on(updateUserName, (_, name) => name)
     .on(saveAccountFx.doneData, (_, { name }) => name)
     .on(loginWithPasswordFx.doneData, (_, { name }) => name)
-    .on(restoreSessionFx.doneData, (state, data) => data?.name ?? state)
     .reset(logOut);
 
 export const $seed = appD.createStore<string | null>(null)
     .on(loginFx.done, pipe(nthArg(1), prop('params')))
     .on(saveAccountFx.doneData, (_, { seed }) => seed)
     .on(loginWithPasswordFx.doneData, (_, { seed }) => seed)
-    .on(restoreSessionFx.doneData, (state, data) => data?.seed ?? state)
     .reset(logOut);
 
 export const $keyPair = appD.createStore<KeyPair | null>(null)
@@ -171,7 +143,6 @@ export const $keyPair = appD.createStore<KeyPair | null>(null)
         const result = seedToKeyPair(seed);
         return result.isOk() ? result.value : null;
     })
-    .on(restoreSessionFx.doneData, (state, data) => data?.pair ?? state)
     .reset(logOut);
 
 export const $token = appD.createStore<string | null>(null)
@@ -218,16 +189,3 @@ sample({
     clock: loginWithPassword,
     target: loginWithPasswordFx
 });
-
-// Сохранение сессии
-sample({
-    clock: [loginFx.done, saveAccountFx.done, loginWithPasswordFx.done],
-    source: { seed: $seed, name: $userName },
-    filter: ({ seed }) => !!seed,
-    fn: ({ seed, name }) => {
-        const expiresAt = Date.now() + SESSION_TTL;
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ seed, name, expiresAt }));
-    }
-});
-
-restoreSessionFx();
