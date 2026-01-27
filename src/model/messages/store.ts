@@ -3,7 +3,7 @@ import type { StoredMessage } from '@/storage';
 import { MessageDirection } from '@/storage';
 import { propEq } from 'ramda';
 import { $selectedContact } from '@/model/contacts';
-import { loadMessagesFx, markAsDeletedFromServerFx, markAsDeliveredFx, saveMessagesFx } from './storage';
+import { loadMessagesFx, markAsDeletedFromServerFx, markAsDeliveredFx, markAsReadFx, saveMessagesFx } from './storage';
 import { mergeMessages } from './utils';
 
 export const $messages = appD
@@ -37,12 +37,23 @@ export const $messages = appD
 
         return changed ? saved.slice() : saved;
     })
+    .on(markAsReadFx.done, (saved, { params: id }) => {
+        const read = saved.find(propEq(id, 'id'));
+
+        if (!read || read.direction !== MessageDirection.Incoming || read.readAt) {
+            return saved;
+        }
+
+        read.readAt = Date.now();
+
+        return saved.slice();
+    })
     .reset($selectedContact);
 
-    // Watch for changes in $messages and log the updated messages
-    $messages.watch((messages) => {
-        console.log('Messages updated:', messages);
-    });
+// Watch for changes in $messages and log the updated messages
+$messages.watch((messages) => {
+    console.log('Messages updated:', messages);
+});
 
 
 

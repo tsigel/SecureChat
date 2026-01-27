@@ -2,18 +2,121 @@ import { useCallback, useEffect, useRef } from 'react';
 import { HashAvatar } from '@/components/common/HashAvatar';
 import { useGate, useUnit } from 'effector-react';
 import { $selectedContact } from '@/model/contacts';
-import { $messages, MessagesGate } from '@/model/messages';
+import { $messages, markMessageAsRead, MessagesGate } from '@/model/messages';
 import { Message, MessageDirection } from '@/storage';
 import { $keyPair } from '@/model/user';
 import { decodeText, decrypt } from '@/lib/crypto';
 import sodium from 'libsodium-wrappers';
 
+function useMessageReadTracking(params: {
+    containerRef: React.RefObject<HTMLElement | null>;
+    messages: Message[];
+    enabled: boolean;
+    onRead: (messageId: string) => void;
+    threshold?: number;
+    minVisibleMs?: number;
+}) {
+    const {
+        containerRef,
+        messages,
+        enabled,
+        onRead,
+        threshold = 0.7,
+        minVisibleMs = 1200,
+    } = params;
+
+    const firedRef = useRef<Set<string>>(new Set());
+    const timersRef = useRef<Map<string, number>>(new Map());
+
+    useEffect(() => {
+        if (!enabled) {
+            return;
+        }
+
+        const root = containerRef.current;
+        if (!root) {
+            return;
+        }
+
+        const clearTimer = (id: string) => {
+            const t = timersRef.current.get(id);
+            if (t != null) {
+                window.clearTimeout(t);
+                timersRef.current.delete(id);
+            }
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            const isActive = document.hasFocus() && !document.hidden;
+
+            for (const entry of entries) {
+                const el = entry.target as HTMLElement;
+                const id = el.dataset.messageId;
+                if (!id) continue;
+
+                // если уже отправили — больше не трекаем
+                if (firedRef.current.has(id)) {
+                    clearTimer(id);
+                    continue;
+                }
+
+                // если элемент ушёл из видимости или вкладка неактивна — отменяем таймер
+                if (!isActive || !entry.isIntersecting || entry.intersectionRatio < threshold) {
+                    clearTimer(id);
+                    continue;
+                }
+
+                // уже ждём minVisibleMs
+                if (timersRef.current.has(id)) {
+                    continue;
+                }
+
+                const handle = window.setTimeout(() => {
+                    timersRef.current.delete(id);
+
+                    // повторная проверка на момент срабатывания
+                    if (!document.hasFocus() || document.hidden) {
+                        return;
+                    }
+                    if (firedRef.current.has(id)) {
+                        return;
+                    }
+
+                    firedRef.current.add(id);
+                    onRead(id);
+                }, minVisibleMs);
+
+                timersRef.current.set(id, handle);
+            }
+        }, { root, threshold });
+
+        const idsToObserve = messages
+            .filter((m) => m.direction === MessageDirection.Incoming && !m.readAt)
+            .map((m) => m.id);
+
+        for (const id of idsToObserve) {
+            const el = root.querySelector<HTMLElement>(`[data-message-id="${id}"]`);
+            if (el) {
+                observer.observe(el);
+            }
+        }
+
+        return () => {
+            observer.disconnect();
+            for (const t of timersRef.current.values()) {
+                window.clearTimeout(t);
+            }
+            timersRef.current.clear();
+        };
+    }, [containerRef, enabled, messages, minVisibleMs, onRead, threshold]);
+}
+
 const MessageItem = ({
-                         message,
-                         formatTime,
-                         contactName,
-                         contactHash,
-                     }: {
+    message,
+    formatTime,
+    contactName,
+    contactHash,
+}: {
     message: Message
     formatTime: (date: number) => string
     contactName: string
@@ -25,6 +128,7 @@ const MessageItem = ({
 
     return (
         <div
+            data-message-id={message.id}
             className={`flex items-start gap-3 ${message.direction === MessageDirection.Outgoing ? 'flex-row-reverse' : 'flex-row'}`}
         >
             {message.direction === MessageDirection.Incoming && (
@@ -42,7 +146,7 @@ const MessageItem = ({
                     className={`px-4 py-2.5 rounded-2xl ${message.direction == MessageDirection.Outgoing
                         ? 'bg-primary text-primary-foreground rounded-tr-sm'
                         : 'bg-neutral-800 text-card-foreground rounded-tl-sm'
-                    }`}
+                        }`}
                 >
                     <p className="text-sm leading-relaxed">{text}</p>
                 </div>
@@ -58,6 +162,8 @@ export const MessageList = () => {
     const messages: Array<Message> = useUnit($messages);
     const contact = useUnit($selectedContact);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const markRead = useUnit(markMessageAsRead);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,17 +177,24 @@ export const MessageList = () => {
         return null;
     }
 
+    useMessageReadTracking({
+        containerRef,
+        messages,
+        enabled: true,
+        onRead: markRead,
+    });
+
     return (
-        <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-6">
             <div className="space-y-4">
                 {messages.map((message) => (
                     <MessageItem key={message.id}
-                                 message={message}
-                                 formatTime={formatTime}
-                                 contactName={contact.name}
-                                 contactHash={contact.id}/>
+                        message={message}
+                        formatTime={formatTime}
+                        contactName={contact.name}
+                        contactHash={contact.id} />
                 ))}
-                <div ref={messagesEndRef}/>
+                <div ref={messagesEndRef} />
             </div>
         </div>
     );

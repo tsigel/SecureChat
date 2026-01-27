@@ -7,7 +7,7 @@ import { isNotNil, prop } from 'ramda';
 import { createPoll } from '@/utils/createaPoll';
 import { $storage } from '@/model/storage';
 import { $keyPair, $pk, $token } from '@/model/user';
-import { $selectedContact } from '@/model/contacts';
+import { $selectedContact, refreshContactsMeta } from '@/model/contacts';
 import { encodeText, encrypt } from '@/lib/crypto';
 import sodium from 'libsodium-wrappers';
 
@@ -15,7 +15,7 @@ import type { Contact } from '@/components/messenger/types';
 import type { KeyPair } from '@/utils/seedHelpers';
 import { fetchMessagesFx, sendDeliveredFx, sendMessageFx } from './api';
 import type { SendMessageFxProps } from './api';
-import { loadMessagesFx, markAsDeletedFromServerFx, saveMessagesFx } from './storage';
+import { loadMessagesFx, markAsDeletedFromServerFx, markAsReadFx, saveMessagesFx } from './storage';
 import { $messages } from './store';
 
 export const MessagesGate = createGate({
@@ -24,6 +24,7 @@ export const MessagesGate = createGate({
 });
 
 export const sendMessage = appD.createEvent<string>();
+export const markMessageAsRead = appD.createEvent<string>(); // messageId
 
 type SendMessageSource = {
     recipient: Contact | null;
@@ -127,6 +128,27 @@ sample({
     target: saveMessagesFx,
 });
 
+// Пометка прочитанным: view -> event -> effect
+sample({
+    clock: markMessageAsRead,
+    target: markAsReadFx,
+});
+
+// После успешной пометки прочитанным — обновляем метаданные контакта (unread/lastMessage)
+sample({
+    clock: markAsReadFx.done,
+    source: $messages,
+    filter: (messages, { params: messageId }) => {
+        const msg = messages.find((m) => m.id === messageId);
+        return !!msg && msg.direction === MessageDirection.Incoming;
+    },
+    fn: (messages, { params: messageId }) => {
+        const msg = messages.find((m) => m.id === messageId);
+        return msg && msg.direction === MessageDirection.Incoming ? [msg.sender] : [];
+    },
+    target: refreshContactsMeta,
+});
+
 // 1) При смене контакта — грузим сообщения из БД
 sample({
     clock: $selectedContact,
@@ -165,6 +187,24 @@ sample({
     filter: (_, messages) => messages.length > 0,
     fn: (storage, messages) => ({ storage, messages }),
     target: saveMessagesFx,
+});
+
+// После сохранения новых сообщений — обновляем метаданные затронутых контактов
+sample({
+    clock: saveMessagesFx.doneData,
+    fn: (messages) => {
+        const ids = new Set<string>();
+        for (const m of messages) {
+            if (m.direction === MessageDirection.Incoming) {
+                ids.add(m.sender);
+            } else {
+                ids.add(m.recipient);
+            }
+        }
+        return Array.from(ids);
+    },
+    filter: (ids) => ids.length > 0,
+    target: refreshContactsMeta,
 });
 
 export { $messages };
