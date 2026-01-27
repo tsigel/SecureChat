@@ -47,6 +47,19 @@ export const markAsDeliveredFx = attach({
     mapParams: (messageId: string, source) => ({ ...source, messageId }),
 });
 
+export type MarkAsReadFxProps = {
+    storage: StorageFacade;
+    messageId: string;
+};
+
+export const markAsReadFx = attach({
+    effect: appD.createEffect(({ storage, messageId }: MarkAsReadFxProps) => {
+        return fromAsyncResult(storage.messages.markAsRead({ id: messageId }));
+    }),
+    source: { storage: $storage },
+    mapParams: (messageId: string, source) => ({ ...source, messageId }),
+});
+
 export type MarkAsDeletedFromServerFxProps = {
     storage: StorageFacade;
     ids: string[];

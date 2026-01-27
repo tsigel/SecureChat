@@ -17,6 +17,7 @@ export const addOrRenameContact = appD.createEvent<StoredContact>();
 export const selectContact = appD.createEvent<string>();
 export const setSearch = appD.createEvent<string | null>();
 export const deleteContact = appD.createEvent<string>();
+export const refreshContactsMeta = appD.createEvent<string[]>(); // contact ids
 
 export const ContactsGate = createGate({
     domain: appD,
@@ -29,11 +30,55 @@ type LoadContactsParams = {
     keyPair: KeyPair;
 }
 
+type ContactMeta = { id: string; lastMessage?: string; timestamp?: number; unread?: number };
+
+type RefreshContactsMetaParams = {
+    ids: string[];
+    storage: StorageFacade;
+    owner: string;
+    keyPair: KeyPair;
+};
+
+const refreshContactsMetaFx = appD.createEffect<RefreshContactsMetaParams, ContactMeta[]>(async ({
+    ids,
+    storage,
+    owner,
+    keyPair,
+}) => {
+    const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
+    if (!uniqueIds.length) {
+        return [];
+    }
+
+    const metas = await asyncMap(5, async (contactId): Promise<ContactMeta | null> => {
+        try {
+            const result = await storage.messages.loadMessages({
+                publicKeyHex: contactId,
+                owner
+            });
+            if (result.isErr()) {
+                throw result.error;
+            }
+
+            return {
+                id: contactId,
+                unread: getUnreadCount(result.value),
+                ...getLastMessage(result.value, keyPair)
+            };
+        } catch (error) {
+            console.error('[contacts] refreshContactsMetaFx error', { contactId, error });
+            return null;
+        }
+    }, uniqueIds);
+
+    return metas.filter((m): m is ContactMeta => !!m);
+});
+
 const loadContactsFx = appD.createEffect<LoadContactsParams, Contact[]>(async ({
-                                                                                   storage,
-                                                                                   owner,
-                                                                                   keyPair,
-                                                                               }) => {
+    storage,
+    owner,
+    keyPair,
+}) => {
     const result = await storage.contacts.listContacts({ owner });
     if (result.isErr()) {
         throw result.error;
@@ -80,12 +125,41 @@ const addContactFx = appD.createEffect(({ contact, storage }: AddContactProps) =
 
 export const $contacts = appD.createStore<Contact[]>([])
     .on(loadContactsFx.doneData, pipe(nthArg(1), orderContacts))
+    .on(refreshContactsMetaFx.doneData, (contacts, metas) => {
+        if (!metas.length) {
+            return contacts;
+        }
+
+        const metaById = new Map(metas.map((m) => [m.id, m] as const));
+        let changed = false;
+
+        const next = contacts.map((c) => {
+            const meta = metaById.get(c.id);
+            if (!meta) return c;
+            changed = true;
+            const { id: _id, ...rest } = meta;
+            return { ...c, ...rest };
+        });
+
+        return changed ? orderContacts(next) : contacts;
+    })
     .reset(logOut);
 
 export const $selectedContact = appD.createStore<Contact | null>(null)
     .on(deleteContact, (selected, publicKeyHex) =>
         selected?.id === publicKeyHex ? null : selected
     )
+    .on(refreshContactsMetaFx.doneData, (selected, metas) => {
+        if (!selected || !metas.length) {
+            return selected;
+        }
+        const meta = metas.find((m) => m.id === selected.id);
+        if (!meta) {
+            return selected;
+        }
+        const { id: _id, ...rest } = meta;
+        return { ...selected, ...rest };
+    })
     .reset(logOut);
 
 export const $search = appD.createStore<string | null>(null)
@@ -131,6 +205,24 @@ sample({
     source: $contacts,
     fn: (contacts, id) => contacts.find(propEq(id, 'id')) || null,
     target: $selectedContact
+});
+
+sample({
+    clock: refreshContactsMeta,
+    source: {
+        storage: $storage,
+        keyPair: $keyPair,
+        owner: $pk
+    },
+    filter: (source, ids): source is { storage: StorageFacade; keyPair: KeyPair; owner: string } =>
+        !!source.owner && !!source.keyPair && ids.length > 0,
+    fn: (source, ids): RefreshContactsMetaParams => ({
+        ids,
+        storage: source.storage,
+        owner: source.owner,
+        keyPair: source.keyPair
+    }),
+    target: refreshContactsMetaFx
 });
 
 // Debug logging: добавление контакта и ошибки эффектов
