@@ -2,7 +2,7 @@ import { pack } from 'msgpackr';
 import { appD } from '@/model/app';
 import { API_URL } from '@/constants';
 import { parseFetchResponse } from '@/lib/parseFetchResponse';
-import type { IncomingMessage, Stored, StoredMessage } from '@/storage';
+import type { IncomingMessage, OutgoingMessage, Stored, StoredMessage } from '@/storage';
 import { MessageDirection } from '@/storage';
 import { map, prop } from 'ramda';
 import sodium from 'libsodium-wrappers';
@@ -24,7 +24,7 @@ export const fetchMessagesFx = appD.createEffect(({ token, pk }: FetchMessagesPr
 });
 
 export type SendMessageFxProps = {
-    message: StoredMessage;
+    message: Omit<Stored<OutgoingMessage>, 'id'>;
     token: string;
 };
 

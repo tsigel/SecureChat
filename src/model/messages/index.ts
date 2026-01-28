@@ -10,11 +10,10 @@ import { $keyPair, $pk, $token } from '@/model/user';
 import { $selectedContact, refreshContactsMeta } from '@/model/contacts';
 import { encodeText, encrypt } from '@/lib/crypto';
 import sodium from 'libsodium-wrappers';
-
 import type { Contact } from '@/components/messenger/types';
 import type { KeyPair } from '@/utils/seedHelpers';
-import { fetchMessagesFx, sendDeliveredFx, sendMessageFx } from './api';
 import type { SendMessageFxProps } from './api';
+import { fetchMessagesFx, sendDeliveredFx, sendMessageFx } from './api';
 import { loadMessagesFx, markAsDeletedFromServerFx, markAsReadFx, saveMessagesFx } from './storage';
 import { $messages } from './store';
 
@@ -38,17 +37,6 @@ function canSendMessage(
 ): source is { recipient: Contact; keyPair: KeyPair; token: string } {
     return !!source.recipient && !!source.keyPair && !!source.token;
 }
-
-const getMessagesForResendFx = attach({
-    effect: appD.createEffect((messages: StoredMessage[]) =>
-        messages.filter((msg) => {
-            if (msg.direction === MessageDirection.Incoming) {
-                return false;
-            }
-            return !msg.delivered;
-        })),
-    source: $messages,
-});
 
 const getDeliveredMessagesFx = attach({
     effect: appD.createEffect((messages: StoredMessage[]) => {
@@ -83,14 +71,6 @@ createPoll({
     gate: MessagesGate,
 });
 
-// Полим повторную отправку исходящих, если не доставлены
-createPoll({
-    domain: appD,
-    fx: getMessagesForResendFx,
-    delay: 1_000,
-    gate: MessagesGate,
-});
-
 // 2) Полим новые сообщения с сервера
 createPoll({
     domain: appD,
@@ -105,24 +85,18 @@ createPoll({
     delay: 1_000,
 });
 
-// При наличии недоставленных исходящих — пытаемся отправить первое
-sample({
-    clock: getMessagesForResendFx.doneData,
-    source: $token,
-    filter: (token, messages) => !!token && messages.length > 0,
-    fn: (token, messages) => ({
-        token: token as string,
-        message: messages[0]!,
-    }),
-    target: sendMessageFx,
-});
-
 // После успешной отправки исходящего — сохраняем в БД delivered=true
 sample({
     clock: sendMessageFx.done,
     source: $storage,
-    fn: (storage, call) => ({
-        messages: [{ ...(call.params.message as Stored<OutgoingMessage>), delivered: true }],
+    fn: (storage, { params, result }) => ({
+        messages: [
+            {
+                ...(params.message as Omit<Stored<OutgoingMessage>, 'id'>),
+                id: result.id,
+                delivered: true,
+            },
+        ],
         storage,
     }),
     target: saveMessagesFx,
@@ -167,7 +141,6 @@ sample({
         message: string
     ): SendMessageFxProps => ({
         message: {
-            id: window.crypto.randomUUID(),
             recipient: recipient.id,
             encrypted: sodium.to_base64(encrypt(encodeText(message), keyPair, sodium.from_hex(recipient.id))),
             createdAt: Date.now(),

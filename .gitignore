@@ -16,6 +16,11 @@ yarn-error.log*
 # env files
 .env*
 
+# local dev certs (nginx)
+/infra/nginx-test/certs/*.key
+/infra/nginx-test/certs/*.crt
+/infra/nginx-test/certs/*.pem
+
 # typescript
 *.tsbuildinfo
 

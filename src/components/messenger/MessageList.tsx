@@ -167,6 +167,7 @@ export const MessageList = () => {
     const lastIncomingIdRef = useRef<string | null>(null);
     const initializedRef = useRef(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const lastContactIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -181,7 +182,7 @@ export const MessageList = () => {
 
     // Воспроизведение звука при появлении нового входящего сообщения
     useEffect(() => {
-        if (!messages.length) {
+        if (!messages.length || !contact) {
             return;
         }
 
@@ -190,11 +191,20 @@ export const MessageList = () => {
             .sort((a, b) => a.createdAt - b.createdAt)
             .at(-1);
 
+        // При смене контакта не считаем сообщения "новыми" и не играем звук
+        // Просто запоминаем последнее входящее сообщение для этого контакта.
+        if (lastContactIdRef.current !== contact.id) {
+            lastContactIdRef.current = contact.id;
+            lastIncomingIdRef.current = lastIncoming?.id ?? null;
+            initializedRef.current = true;
+            return;
+        }
+
         if (!lastIncoming) {
             return;
         }
 
-        // пропускаем первый рендер, чтобы не было звука при открытии чата
+        // пропускаем первый рендер глобально, чтобы не было звука при самом первом открытии приложения
         if (!initializedRef.current) {
             initializedRef.current = true;
             lastIncomingIdRef.current = lastIncoming.id;
@@ -204,9 +214,9 @@ export const MessageList = () => {
         if (lastIncoming.id !== lastIncomingIdRef.current) {
             lastIncomingIdRef.current = lastIncoming.id;
             // пробуем воспроизвести звук; ошибки (блокировка автоплея) игнорируем
-            void audioRef.current?.play().catch(() => {});
+            void audioRef.current?.play().catch(() => { });
         }
-    }, [messages]);
+    }, [messages, contact]);
 
     const formatTime = useCallback((date: number) => {
         return new Date(date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });

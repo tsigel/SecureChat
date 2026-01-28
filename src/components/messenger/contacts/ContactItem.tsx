@@ -38,15 +38,14 @@ export const ContactItem = ({
             : time.format(TIME_SHORT_FORMAT)
         : void 0;
 
+    const buttonClassNames = [
+        'w-full flex items-start gap-3 px-4 py-3 transition-colors',
+        'hover:bg-muted/50',
+        isSelected ? 'bg-muted' : ''
+    ].join(' ');
+
     return (
-        <button
-            onClick={onClick}
-            className={`
-        w-full flex items-start gap-3 px-4 py-3 transition-colors
-        hover:bg-muted/50
-        ${isSelected ? 'bg-muted' : ''}
-      `}
-        >
+        <button onClick={onClick} className={buttonClassNames}>
             <div className="relative">
                 <HashAvatar hash={id} name={name} className="h-12 w-12"/>
                 {online && (
@@ -61,7 +60,7 @@ export const ContactItem = ({
                 </div>
                 <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground truncate">{lastMessage}</p>
-                    {unread && (
+                    {unread != undefined && unread > 0 && (
                         <span
                             className="ml-2 shrink-0 flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-medium"
                         >

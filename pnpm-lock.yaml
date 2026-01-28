@@ -50,9 +50,6 @@ importers:
       '@types/libsodium-wrappers':
         specifier: ^0.7.14
         version: 0.7.14
-      '@types/libsodium-wrappers-sumo':
-        specifier: ^0.8.2
-        version: 0.8.2
       '@types/ramda':
         specifier: ^0.31.1
         version: 0.31.1
@@ -1409,10 +1406,6 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
-
-  '@types/libsodium-wrappers-sumo@0.8.2':
-    resolution: {integrity: sha512-uFOBpg/r21hExVlh2ty8YpDfSR+Yy3Jn8XS4+SSjitbhTxdYq+pBz/49XRxyUFe8SzqujHf/Wu0/O4d+FUtNfQ==}
-    deprecated: This is a stub types definition. libsodium-wrappers-sumo provides its own type definitions, so you do not need this installed.
 
   '@types/libsodium-wrappers@0.7.14':
     resolution: {integrity: sha512-5Kv68fXuXK0iDuUir1WPGw2R9fOZUlYlSAa0ztMcL0s0BfIDTqg9GXz8K30VJpPP3sxWhbolnQma2x+/TfkzDQ==}
@@ -3268,10 +3261,6 @@ snapshots:
       '@babel/types': 7.28.5
 
   '@types/estree@1.0.8': {}
-
-  '@types/libsodium-wrappers-sumo@0.8.2':
-    dependencies:
-      libsodium-wrappers-sumo: 0.8.2
 
   '@types/libsodium-wrappers@0.7.14': {}
 
