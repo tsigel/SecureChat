@@ -164,9 +164,48 @@ export const MessageList = () => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const markRead = useUnit(markMessageAsRead);
+    const lastIncomingIdRef = useRef<string | null>(null);
+    const initializedRef = useRef(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    // Инициализация аудио-объекта один раз
+    useEffect(() => {
+        if (!audioRef.current) {
+            audioRef.current = new Audio('/notification.mp3');
+        }
+    }, []);
+
+    // Воспроизведение звука при появлении нового входящего сообщения
+    useEffect(() => {
+        if (!messages.length) {
+            return;
+        }
+
+        const lastIncoming = [...messages]
+            .filter((m) => m.direction === MessageDirection.Incoming)
+            .sort((a, b) => a.createdAt - b.createdAt)
+            .at(-1);
+
+        if (!lastIncoming) {
+            return;
+        }
+
+        // пропускаем первый рендер, чтобы не было звука при открытии чата
+        if (!initializedRef.current) {
+            initializedRef.current = true;
+            lastIncomingIdRef.current = lastIncoming.id;
+            return;
+        }
+
+        if (lastIncoming.id !== lastIncomingIdRef.current) {
+            lastIncomingIdRef.current = lastIncoming.id;
+            // пробуем воспроизвести звук; ошибки (блокировка автоплея) игнорируем
+            void audioRef.current?.play().catch(() => {});
+        }
     }, [messages]);
 
     const formatTime = useCallback((date: number) => {

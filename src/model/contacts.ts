@@ -221,49 +221,8 @@ sample({
         storage: source.storage,
         owner: source.owner,
         keyPair: source.keyPair
-    }),
+    }) as RefreshContactsMetaParams,
     target: refreshContactsMetaFx
-});
-
-// Debug logging: добавление контакта и ошибки эффектов
-addOrRenameContact.watch((contact) => {
-    console.log('[contacts] addOrRenameContact', contact);
-});
-
-addContactFx.watch((params) => {
-    console.log('[contacts] addContactFx.start', params);
-});
-
-addContactFx.done.watch(({ params, result }) => {
-    console.log('[contacts] addContactFx.done', { params, result });
-});
-
-addContactFx.failData.watch((error) => {
-    console.error('[contacts] addContactFx.fail', error);
-});
-
-loadContactsFx.watch((params) => {
-    console.log('[contacts] loadContactsFx.start', params);
-});
-
-loadContactsFx.done.watch(({ params, result }) => {
-    console.log('[contacts] loadContactsFx.done', { params, result });
-});
-
-loadContactsFx.failData.watch((error) => {
-    console.error('[contacts] loadContactsFx.fail', error);
-});
-
-deleteContactFx.watch((params) => {
-    console.log('[contacts] deleteContactFx.start', params);
-});
-
-deleteContactFx.done.watch(({ params, result }) => {
-    console.log('[contacts] deleteContactFx.done', { params, result });
-});
-
-deleteContactFx.failData.watch((error) => {
-    console.error('[contacts] deleteContactFx.fail', error);
 });
 
 sample({
