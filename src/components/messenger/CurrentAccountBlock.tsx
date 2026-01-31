@@ -1,13 +1,16 @@
-import { LogOut, MoreVertical } from 'lucide-react';
+import { useState } from 'react';
+import { LogOut, MoreVertical, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HashAvatar } from '@/components/common/HashAvatar';
 import { ShareAccountDialog } from './ShareAccountDialog';
+import { SettingsDialog } from './SettingsDialog';
 
 interface CurrentAccountBlockProps {
     userHash: string | null;
@@ -16,6 +19,8 @@ interface CurrentAccountBlockProps {
 }
 
 export function CurrentAccountBlock({ userHash, userName = 'User', onLogout }: CurrentAccountBlockProps) {
+    const [settingsOpen, setSettingsOpen] = useState(false);
+
     return (
         <div className="mt-auto p-3 border-t border-border">
             <div className="flex items-center gap-3">
@@ -35,6 +40,11 @@ export function CurrentAccountBlock({ userHash, userName = 'User', onLogout }: C
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" side="top" className="w-48">
+                            <DropdownMenuItem onClick={() => setSettingsOpen(true)} className="cursor-pointer">
+                                <Settings className="mr-2 h-4 w-4" />
+                                <span>Настройки</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={onLogout} className="cursor-pointer">
                                 <LogOut className="mr-2 h-4 w-4" />
                                 <span>Выход</span>
@@ -42,6 +52,7 @@ export function CurrentAccountBlock({ userHash, userName = 'User', onLogout }: C
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
+                <SettingsDialog isOpen={settingsOpen} onOpenChange={setSettingsOpen} />
             </div>
         </div>
     );

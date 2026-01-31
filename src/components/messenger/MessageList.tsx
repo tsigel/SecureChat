@@ -7,6 +7,7 @@ import { Message, MessageDirection } from '@/storage';
 import { $keyPair } from '@/model/user';
 import { decodeText, decrypt } from '@/lib/crypto';
 import sodium from 'libsodium-wrappers';
+import { $soundEnabled } from '@/model/settings';
 
 function useMessageReadTracking(params: {
     containerRef: React.RefObject<HTMLElement | null>;
@@ -161,6 +162,7 @@ export const MessageList = () => {
 
     const messages: Array<Message> = useUnit($messages);
     const contact = useUnit($selectedContact);
+    const soundEnabled = useUnit($soundEnabled);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const markRead = useUnit(markMessageAsRead);
@@ -169,8 +171,20 @@ export const MessageList = () => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const lastContactIdRef = useRef<string | null>(null);
 
+    const prevMessageCountRef = useRef(0);
+
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const prevCount = prevMessageCountRef.current;
+        prevMessageCountRef.current = messages.length;
+
+        // Скроллим только когда добавлено новое сообщение, а не при обновлении статусов
+        if (messages.length <= prevCount) {
+            return;
+        }
+
+        messagesEndRef.current?.scrollIntoView(
+            prevCount === 0 ? { behavior: 'instant' } : { behavior: 'smooth' }
+        );
     }, [messages]);
 
     // Инициализация аудио-объекта один раз
@@ -214,9 +228,11 @@ export const MessageList = () => {
         if (lastIncoming.id !== lastIncomingIdRef.current) {
             lastIncomingIdRef.current = lastIncoming.id;
             // пробуем воспроизвести звук; ошибки (блокировка автоплея) игнорируем
-            void audioRef.current?.play().catch(() => { });
+            if (soundEnabled) {
+                void audioRef.current?.play().catch(() => { });
+            }
         }
-    }, [messages, contact]);
+    }, [messages, contact, soundEnabled]);
 
     const formatTime = useCallback((date: number) => {
         return new Date(date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });

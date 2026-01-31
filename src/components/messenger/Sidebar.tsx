@@ -42,7 +42,7 @@ export function Sidebar({
                     onDeleteAllChats={localDeleteAllChats}
                 />
                 <SidebarSearch/>
-                <ContactsList/>
+                <ContactsList onSelectContact={onCloseSidebar}/>
                 <CurrentAccountBlock
                     userHash={userHash}
                     userName={userName}

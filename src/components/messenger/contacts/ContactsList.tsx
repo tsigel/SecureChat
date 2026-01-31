@@ -6,7 +6,11 @@ import { $contacts, $selectedContact, ContactsGate, selectContact } from '@/mode
 import { useGate } from 'effector-react';
 import { $search } from '@/model/contacts';
 
-export const ContactsList = () => {
+interface ContactsListProps {
+    onSelectContact?: () => void;
+}
+
+export const ContactsList = ({ onSelectContact }: ContactsListProps) => {
     useGate(ContactsGate);
 
     const contacts = useUnit($contacts);
@@ -21,7 +25,8 @@ export const ContactsList = () => {
 
     const handleSelectContact = useCallback((contact: Contact) => {
         localSelectContact(contact.id);
-    }, [localSelectContact]);
+        onSelectContact?.();
+    }, [localSelectContact, onSelectContact]);
 
     return (
         <div className="flex-1 overflow-y-auto">
