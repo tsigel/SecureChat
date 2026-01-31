@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { HashAvatar } from '@/components/common/HashAvatar';
-import { useGate, useUnit } from 'effector-react';
+import { useUnit } from 'effector-react';
 import { $selectedContact } from '@/model/contacts';
-import { $messages, markMessageAsRead, MessagesGate } from '@/model/messages';
+import { $messages, markMessageAsRead } from '@/model/messages';
 import { Message, MessageDirection } from '@/storage';
 import { $keyPair } from '@/model/user';
 import { decodeText, decrypt } from '@/lib/crypto';
 import sodium from 'libsodium-wrappers';
-import { $soundEnabled } from '@/model/settings';
 
 function useMessageReadTracking(params: {
     containerRef: React.RefObject<HTMLElement | null>;
@@ -158,18 +157,11 @@ const MessageItem = ({
 };
 
 export const MessageList = () => {
-    useGate(MessagesGate);
-
     const messages: Array<Message> = useUnit($messages);
     const contact = useUnit($selectedContact);
-    const soundEnabled = useUnit($soundEnabled);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const markRead = useUnit(markMessageAsRead);
-    const lastIncomingIdRef = useRef<string | null>(null);
-    const initializedRef = useRef(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const lastContactIdRef = useRef<string | null>(null);
 
     const prevMessageCountRef = useRef(0);
 
@@ -186,53 +178,6 @@ export const MessageList = () => {
             prevCount === 0 ? { behavior: 'instant' } : { behavior: 'smooth' }
         );
     }, [messages]);
-
-    // Инициализация аудио-объекта один раз
-    useEffect(() => {
-        if (!audioRef.current) {
-            audioRef.current = new Audio('/notification.mp3');
-        }
-    }, []);
-
-    // Воспроизведение звука при появлении нового входящего сообщения
-    useEffect(() => {
-        if (!messages.length || !contact) {
-            return;
-        }
-
-        const lastIncoming = [...messages]
-            .filter((m) => m.direction === MessageDirection.Incoming)
-            .sort((a, b) => a.createdAt - b.createdAt)
-            .at(-1);
-
-        // При смене контакта не считаем сообщения "новыми" и не играем звук
-        // Просто запоминаем последнее входящее сообщение для этого контакта.
-        if (lastContactIdRef.current !== contact.id) {
-            lastContactIdRef.current = contact.id;
-            lastIncomingIdRef.current = lastIncoming?.id ?? null;
-            initializedRef.current = true;
-            return;
-        }
-
-        if (!lastIncoming) {
-            return;
-        }
-
-        // пропускаем первый рендер глобально, чтобы не было звука при самом первом открытии приложения
-        if (!initializedRef.current) {
-            initializedRef.current = true;
-            lastIncomingIdRef.current = lastIncoming.id;
-            return;
-        }
-
-        if (lastIncoming.id !== lastIncomingIdRef.current) {
-            lastIncomingIdRef.current = lastIncoming.id;
-            // пробуем воспроизвести звук; ошибки (блокировка автоплея) игнорируем
-            if (soundEnabled) {
-                void audioRef.current?.play().catch(() => { });
-            }
-        }
-    }, [messages, contact, soundEnabled]);
 
     const formatTime = useCallback((date: number) => {
         return new Date(date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });

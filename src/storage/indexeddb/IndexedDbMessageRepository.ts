@@ -78,6 +78,65 @@ export class IndexedDbMessageRepository implements MessageRepository {
         );
     }
 
+    public filterKnownIds(ids: string[]): ResultAsync<Set<string>, StorageError> {
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return errAsync(makeValidationError('ids must be a non-empty array'));
+        }
+
+        // Dexie bulkGet сохраняет порядок входного массива и возвращает undefined, если ключ не найден.
+        return fromPromise(
+            (async () => {
+                const records = await db.messages.bulkGet(ids);
+                const known = new Set<string>();
+                for (let i = 0; i < records.length; i++) {
+                    const r = records[i];
+                    if (r) {
+                        known.add(r.id);
+                    }
+                }
+                return known;
+            })(),
+            (error) => new UnknownError(error)
+        );
+    }
+
+    public getMessagesByIds(ids: string[]): ResultAsync<StoredMessage[], StorageError> {
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return errAsync(makeValidationError('ids must be a non-empty array'));
+        }
+
+        return fromPromise(
+            (async () => {
+                const records = await db.messages.bulkGet(ids);
+                const found: StoredMessage[] = [];
+                for (const r of records) {
+                    if (r) {
+                        found.push(fromRecord(r as unknown as MessageRecord));
+                    }
+                }
+                return found;
+            })(),
+            (error) => new UnknownError(error)
+        );
+    }
+
+    public listUniquePeerIds(owner: string): ResultAsync<string[], StorageError> {
+        if (!owner) return errAsync(makeValidationError('owner is required'));
+
+        return fromPromise(
+            (async () => {
+                const records = await db.messages.where('owner').equals(owner).toArray();
+                const unique = new Set<string>();
+                for (const r of records) {
+                    // peerPublicKeyHex хранится только в записи (record)
+                    unique.add((r as unknown as MessageRecord).peerPublicKeyHex);
+                }
+                return Array.from(unique).filter(Boolean);
+            })(),
+            (error) => new UnknownError(error)
+        );
+    }
+
     public markAsDeletedFromServer(params: MarkAsDeletedFromServerParams): ResultAsync<void, StorageError> {
         if (!params.id) return errAsync(makeValidationError('id is required'));
 

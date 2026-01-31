@@ -7,7 +7,8 @@ import { isNotNil, prop } from 'ramda';
 import { createPoll } from '@/utils/createaPoll';
 import { $storage } from '@/model/storage';
 import { $keyPair, $pk, $token } from '@/model/user';
-import { $selectedContact, refreshContactsMeta } from '@/model/contacts';
+import { $selectedContact, refreshContactsMeta, refreshUnknownChats } from '@/model/contacts';
+import { $soundEnabled } from '@/model/settings';
 import { encodeText, encrypt } from '@/lib/crypto';
 import sodium from 'libsodium-wrappers';
 import type { Contact } from '@/components/messenger/types';
@@ -16,6 +17,8 @@ import type { SendMessageFxProps } from './api';
 import { fetchMessagesFx, sendDeliveredFx, sendMessageFx } from './api';
 import { loadMessagesFx, markAsDeletedFromServerFx, markAsReadFx, saveMessagesFx } from './storage';
 import { $messages } from './store';
+import type { StorageFacade } from '@/storage';
+import { fromAsyncResult } from '@/lib/fromResult';
 
 export const MessagesGate = createGate({
     domain: appD,
@@ -24,6 +27,29 @@ export const MessagesGate = createGate({
 
 export const sendMessage = appD.createEvent<string>();
 export const markMessageAsRead = appD.createEvent<string>(); // messageId
+
+const newIncomingMessagesReceived = appD.createEvent<Stored<IncomingMessage>[]>();
+
+let notificationAudio: HTMLAudioElement | null = null;
+const playNotificationSoundFx = appD.createEffect(async () => {
+    try {
+        if (!notificationAudio) {
+            notificationAudio = new Audio('/notification.mp3');
+        }
+        await notificationAudio.play();
+    } catch {
+        // блокировка автоплея / другие ошибки — игнорируем
+    }
+});
+
+// В тестовой среде апстрим может отдавать редиректы/страницы логина на неавторизованные запросы,
+// поэтому поллинг должен быть "пустым" пока нет token/pk (чтобы не ловить redirect-loop).
+const pollFetchMessagesFx = appD.createEffect(async ({ token, pk }: { token: string | null; pk: string | null }) => {
+    if (!token || !pk) {
+        return [] as StoredMessage[];
+    }
+    return await fetchMessagesFx({ token, pk });
+});
 
 type SendMessageSource = {
     recipient: Contact | null;
@@ -38,49 +64,110 @@ function canSendMessage(
     return !!source.recipient && !!source.keyPair && !!source.token;
 }
 
-const getDeliveredMessagesFx = attach({
-    effect: appD.createEffect((messages: StoredMessage[]) => {
-        return messages
-            .filter((msg): msg is Stored<IncomingMessage> => msg.direction === MessageDirection.Incoming)
-            .filter((msg) => !msg.deletedFromServer);
-    }),
-    source: $messages,
+type SplitFetchedMessagesParams = {
+    storage: StorageFacade;
+    messages: StoredMessage[];
+};
+
+type SplitFetchedMessagesResult = {
+    newMessages: StoredMessage[];
+    knownIds: string[];
+};
+
+const splitFetchedMessagesFx = appD.createEffect(async ({ storage, messages }: SplitFetchedMessagesParams): Promise<SplitFetchedMessagesResult> => {
+    const ids = messages.map((m) => m.id).filter(Boolean);
+    if (!ids.length) {
+        return { newMessages: [], knownIds: [] };
+    }
+
+    const known = await fromAsyncResult(storage.messages.filterKnownIds(ids));
+    const newMessages: StoredMessage[] = [];
+    const knownIds: string[] = [];
+
+    for (const m of messages) {
+        if (known.has(m.id)) {
+            knownIds.push(m.id);
+        } else {
+            newMessages.push(m);
+        }
+    }
+
+    return { newMessages, knownIds };
 });
 
-// 3) Всё, что получили с сервера и ещё не подтверждено локально, подтверждаем на сервере
+// Триггерим уведомление о новых входящих (глобально, не только в активном чате)
 sample({
-    clock: getDeliveredMessagesFx.doneData,
+    clock: splitFetchedMessagesFx.doneData,
+    filter: ({ newMessages }) =>
+        newMessages.some((m) => m.direction === MessageDirection.Incoming && !m.deletedFromServer),
+    fn: ({ newMessages }) =>
+        newMessages
+            .filter((m): m is Stored<IncomingMessage> => m.direction === MessageDirection.Incoming)
+            .filter((m) => !m.deletedFromServer),
+    target: newIncomingMessagesReceived,
+});
+
+sample({
+    clock: newIncomingMessagesReceived,
+    source: $soundEnabled,
+    filter: (enabled) => !!enabled,
+    target: playNotificationSoundFx,
+});
+
+type GetAckNeededKnownMessagesParams = {
+    storage: StorageFacade;
+    knownIds: string[];
+};
+
+const getAckNeededKnownMessagesFx = appD.createEffect(async ({ storage, knownIds }: GetAckNeededKnownMessagesParams) => {
+    if (!knownIds.length) {
+        return [] as Stored<IncomingMessage>[];
+    }
+
+    const existing = await fromAsyncResult(storage.messages.getMessagesByIds(knownIds));
+    return existing
+        .filter((m): m is Stored<IncomingMessage> => m.direction === MessageDirection.Incoming)
+        .filter((m) => !m.deletedFromServer);
+});
+
+// Известные (уже в БД) сообщения: если ещё не подтверждены локально — подтверждаем на сервере и помечаем локально.
+sample({
+    clock: getAckNeededKnownMessagesFx.doneData,
     source: $token,
     filter: (token, messages) => !!token && messages.length > 0,
     fn: (token, messages) => ({ token: token as string, messages }),
     target: sendDeliveredFx,
 });
 
-// После успешной пометки на сервере — помечаем локально как deletedFromServer
 sample({
     clock: sendDeliveredFx.done,
     fn: (data) => data.params.messages.map(prop('id')),
     target: markAsDeletedFromServerFx,
 });
 
-// Полим подтверждение доставленности входящих
-createPoll({
-    domain: appD,
-    fx: getDeliveredMessagesFx,
-    delay: 1_000,
-    gate: MessagesGate,
+// Новые входящие сообщения (после сохранения) тоже подтверждаем на сервере
+sample({
+    clock: saveMessagesFx.doneData,
+    source: $token,
+    filter: (token, saved) =>
+        !!token &&
+        saved.some((m) => m.direction === MessageDirection.Incoming && !m.deletedFromServer),
+    fn: (token, saved) => ({
+        token: token as string,
+        messages: saved
+            .filter((m): m is Stored<IncomingMessage> => m.direction === MessageDirection.Incoming)
+            .filter((m) => !m.deletedFromServer),
+    }),
+    target: sendDeliveredFx,
 });
 
 // 2) Полим новые сообщения с сервера
 createPoll({
     domain: appD,
     launchAfterDelay: true,
-    fx: fetchMessagesFx,
+    fx: pollFetchMessagesFx,
     source: { pk: $pk, token: $token },
-    fn: (source) => ({
-        token: source.token!,
-        pk: source.pk!,
-    }),
+    fn: (source) => ({ token: source.token, pk: source.pk }),
     gate: MessagesGate,
     delay: 1_000,
 });
@@ -155,11 +242,29 @@ sample({
 
 // Новые сообщения с сервера — сохраняем в БД и стор (через saveMessagesFx.doneData -> $messages)
 sample({
-    clock: fetchMessagesFx.doneData,
+    clock: pollFetchMessagesFx.doneData,
     source: $storage,
     filter: (_, messages) => messages.length > 0,
-    fn: (storage, messages) => ({ storage, messages }),
+    fn: (storage, messages): SplitFetchedMessagesParams => ({ storage, messages }),
+    target: splitFetchedMessagesFx,
+});
+
+// Новые сообщения — сохраняем в БД
+sample({
+    clock: splitFetchedMessagesFx.doneData,
+    source: $storage,
+    fn: (storage, { newMessages }) => ({ storage, messages: newMessages }),
+    filter: (_, { newMessages }) => newMessages.length > 0,
     target: saveMessagesFx,
+});
+
+// Известные сообщения — проверяем статусы из БД и при необходимости подтверждаем
+sample({
+    clock: splitFetchedMessagesFx.doneData,
+    source: $storage,
+    fn: (storage, { knownIds }): GetAckNeededKnownMessagesParams => ({ storage, knownIds }),
+    filter: (_, { knownIds }) => knownIds.length > 0,
+    target: getAckNeededKnownMessagesFx,
 });
 
 // После сохранения новых сообщений — обновляем метаданные затронутых контактов
@@ -178,6 +283,13 @@ sample({
     },
     filter: (ids) => ids.length > 0,
     target: refreshContactsMeta,
+});
+
+// Обновляем список "неизвестных" чатов при появлении новых входящих
+sample({
+    clock: saveMessagesFx.doneData,
+    filter: (messages) => messages.some((m) => m.direction === MessageDirection.Incoming),
+    target: refreshUnknownChats,
 });
 
 export { $messages };

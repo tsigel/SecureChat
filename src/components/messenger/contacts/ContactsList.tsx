@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import type { Contact } from '@/components/messenger/types';
 import { ContactItem } from './ContactItem';
 import { useUnit } from 'effector-react/effector-react.mjs';
-import { $contacts, $selectedContact, ContactsGate, selectContact } from '@/model/contacts';
+import { $allChats, $selectedContact, ContactsGate, selectContact } from '@/model/contacts';
 import { useGate } from 'effector-react';
 import { $search } from '@/model/contacts';
 
@@ -13,7 +13,7 @@ interface ContactsListProps {
 export const ContactsList = ({ onSelectContact }: ContactsListProps) => {
     useGate(ContactsGate);
 
-    const contacts = useUnit($contacts);
+    const contacts = useUnit($allChats);
     const search = useUnit($search);
     const selectedContact = useUnit($selectedContact);
     const localSelectContact = useUnit(selectContact);

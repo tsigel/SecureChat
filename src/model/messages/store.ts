@@ -5,11 +5,14 @@ import { propEq } from 'ramda';
 import { $selectedContact } from '@/model/contacts';
 import { loadMessagesFx, markAsDeletedFromServerFx, markAsDeliveredFx, markAsReadFx, saveMessagesFx } from './storage';
 import { mergeMessages } from './utils';
+import { sample } from 'effector';
+
+const mergeSavedMessagesForSelectedContact = appD.createEvent<StoredMessage[]>();
 
 export const $messages = appD
     .createStore<StoredMessage[]>([])
     .on(loadMessagesFx.doneData, mergeMessages)
-    .on(saveMessagesFx.doneData, mergeMessages)
+    .on(mergeSavedMessagesForSelectedContact, mergeMessages)
     .on(markAsDeliveredFx.done, (saved, { params: id }) => {
         const delivered = saved.find(propEq(id, 'id'));
 
@@ -50,9 +53,18 @@ export const $messages = appD
     })
     .reset($selectedContact);
 
-// Watch for changes in $messages and log the updated messages
-$messages.watch((messages) => {
-    console.log('Messages updated:', messages);
+// Мержим в стор только те сообщения, которые относятся к выбранному контакту.
+sample({
+    clock: saveMessagesFx.doneData,
+    source: $selectedContact,
+    filter: (contact) => !!contact,
+    fn: (contact, saved) => {
+        const contactId = contact!.id;
+        return saved.filter((m) =>
+            m.direction === MessageDirection.Incoming ? m.sender === contactId : m.recipient === contactId
+        );
+    },
+    target: mergeSavedMessagesForSelectedContact,
 });
 
 

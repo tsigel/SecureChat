@@ -42,6 +42,24 @@ export interface MessageRepository {
 
     loadMessages(params: LoadMessagesParams): ResultAsync<StoredMessage[], StorageError>;
 
+    /**
+     * Возвращает множество id, которые уже существуют в локальной БД.
+     * Полезно для дедупликации сообщений, пришедших с сервера.
+     */
+    filterKnownIds(ids: string[]): ResultAsync<Set<string>, StorageError>;
+
+    /**
+     * Загружает сообщения по первичным ключам (id). Возвращает только найденные.
+     * Нужен для проверки статусов (например deletedFromServer) для уже известных сообщений.
+     */
+    getMessagesByIds(ids: string[]): ResultAsync<StoredMessage[], StorageError>;
+
+    /**
+     * Возвращает список peer-адресов, с которыми есть сообщения (входящие/исходящие),
+     * включая адреса, которых может не быть в адресной книге.
+     */
+    listUniquePeerIds(owner: PublicKeyHex): ResultAsync<PublicKeyHex[], StorageError>;
+
     markAsDeletedFromServer(params: MarkAsDeletedFromServerParams): ResultAsync<void, StorageError>;
 
     markAsRead(params: MarkAsReadParams): ResultAsync<void, StorageError>;

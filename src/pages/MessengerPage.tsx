@@ -1,17 +1,21 @@
 import { useCallback, useState } from 'react';
 import { useUnit } from 'effector-react';
+import { useGate } from 'effector-react';
 import { $pk, logOut } from '@/model/user';
 import { MessageInput } from '@/components/messenger/MessageInput';
 import { MessageList } from '@/components/messenger/MessageList';
 import { Sidebar } from '@/components/messenger/Sidebar';
 import { ChatHeader } from '@/components/messenger/ChatHeader';
 import { EmptyState } from '@/components/messenger/EmptyState';
-import { $contacts, $selectedContact, addOrRenameContact, deleteContact } from '@/model/contacts';
+import { $allChats, $selectedContact, addOrRenameContact, deleteContact } from '@/model/contacts';
 import { setOpenState } from '@/components/messenger/addContactDialog/addContactModel';
+import { MessagesGate } from '@/model/messages';
 
 export function MessengerPage() {
+  useGate(MessagesGate);
+
   const selectedContact = useUnit($selectedContact);
-  const contacts = useUnit($contacts);
+  const chats = useUnit($allChats);
   const localDeleteContact = useUnit(deleteContact);
   const localRenameContact = useUnit(addOrRenameContact);
   const localSetOpenState = useUnit(setOpenState);
@@ -58,7 +62,7 @@ export function MessengerPage() {
     localSetOpenState(true);
   }, [localSetOpenState]);
 
-  const hasContacts = contacts.length > 0;
+  const hasContacts = chats.length > 0;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">

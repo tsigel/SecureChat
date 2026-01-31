@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "vite build",
-    "dev": "vite",
-    "dev:test-api": "VITE_API_URL=https://cryptomsg.test:443/api/v1 vite",
+    "build:sw": "tsc -p tsconfig.sw.build.json",
+    "build:sw:watch": "tsc -p tsconfig.sw.build.json -w --preserveWatchOutput",
+    "build": "pnpm run build:sw && vite build",
+    "dev": "pnpm run build:sw && vite",
+    "dev:test-api": "pnpm run build:sw && VITE_API_URL=https://cryptomsg.test:443/api/v1 vite",
     "lint": "eslint .",
     "preview": "vite preview"
   },
