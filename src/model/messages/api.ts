@@ -45,8 +45,10 @@ export const sendMessageFx = appD.createEffect(({ token, message }: SendMessageF
                 'Content-Type': 'application/octet-stream',
                 Authorization: `Bearer ${token}`,
             },
+            transformRequest: [(d) => d],      // не трогать тело
+            responseType: 'json',
         })
-        .then((r) => r.data);
+        .then(prop('data'));
 });
 
 export type SendDeliveredProps = {
