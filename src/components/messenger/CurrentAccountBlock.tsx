@@ -18,7 +18,11 @@ interface CurrentAccountBlockProps {
     onLogout: () => void;
 }
 
-export function CurrentAccountBlock({ userHash, userName = 'User', onLogout }: CurrentAccountBlockProps) {
+export function CurrentAccountBlock({
+    userHash,
+    userName = 'User',
+    onLogout,
+}: CurrentAccountBlockProps) {
     const [settingsOpen, setSettingsOpen] = useState(false);
 
     return (
@@ -28,7 +32,9 @@ export function CurrentAccountBlock({ userHash, userName = 'User', onLogout }: C
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{userName}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                        {userHash ? `${userHash.slice(0, 4)}...${userHash.slice(-4)}` : 'Deriving...'}
+                        {userHash
+                            ? `${userHash.slice(0, 4)}...${userHash.slice(-4)}`
+                            : 'Deriving...'}
                     </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -40,7 +46,10 @@ export function CurrentAccountBlock({ userHash, userName = 'User', onLogout }: C
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" side="top" className="w-48">
-                            <DropdownMenuItem onClick={() => setSettingsOpen(true)} className="cursor-pointer">
+                            <DropdownMenuItem
+                                onClick={() => setSettingsOpen(true)}
+                                className="cursor-pointer"
+                            >
                                 <Settings className="mr-2 h-4 w-4" />
                                 <span>Настройки</span>
                             </DropdownMenuItem>

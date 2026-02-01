@@ -9,9 +9,12 @@ export function SidebarSearch() {
     const search = useUnit($search);
     const localSetSearch = useUnit(setSearch);
 
-    const onChangeSearch: ChangeEventHandler<HTMLInputElement> = useCallback((e) => {
-        localSetSearch(e.target.value || null);
-    }, [localSetSearch]);
+    const onChangeSearch: ChangeEventHandler<HTMLInputElement> = useCallback(
+        (e) => {
+            localSetSearch(e.target.value || null);
+        },
+        [localSetSearch],
+    );
 
     return (
         <div className="p-3">

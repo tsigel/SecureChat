@@ -7,19 +7,19 @@
 
 ## Запуск
 
-1) Добавь домен в hosts (один раз):
+1. Добавь домен в hosts (один раз):
 
 ```bash
 sh scripts/add-cryptomsg-test-host.sh
 ```
 
-2) Запусти фронтенд:
+2. Запусти фронтенд:
 
 ```bash
 pnpm dev:test-api
 ```
 
-3) Собери и запусти nginx:
+3. Собери и запусти nginx:
 
 ```bash
 sh scripts/generate-cryptomsg-test-cert.sh

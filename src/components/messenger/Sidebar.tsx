@@ -11,10 +11,7 @@ interface SidebarProps {
     isOpen: boolean;
 }
 
-export function Sidebar({
-                            isOpen,
-                            onCloseSidebar,
-                        }: SidebarProps) {
+export function Sidebar({ isOpen, onCloseSidebar }: SidebarProps) {
     const userHash = useUnit($pk);
     const userName = useUnit($userName);
     const localLogOut = useUnit(logOut);
@@ -41,8 +38,8 @@ export function Sidebar({
                     onClearAllChats={localClearAllChats}
                     onDeleteAllChats={localDeleteAllChats}
                 />
-                <SidebarSearch/>
-                <ContactsList onSelectContact={onCloseSidebar}/>
+                <SidebarSearch />
+                <ContactsList onSelectContact={onCloseSidebar} />
                 <CurrentAccountBlock
                     userHash={userHash}
                     userName={userName}

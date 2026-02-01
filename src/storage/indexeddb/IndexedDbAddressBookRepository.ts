@@ -11,64 +11,67 @@ import { always, includes, pipe, prop } from 'ramda';
 type ContactRecord = StoredContact & { nameLower: string };
 
 const formRecord = (record: ContactRecord): StoredContact => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { nameLower, ...rest } = record;
-  return rest;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { nameLower, ...rest } = record;
+    return rest;
 };
 
 const toRecord = (contact: StoredContact): ContactRecord => {
-  return { ...contact, nameLower: contact.name.toLowerCase() };
+    return { ...contact, nameLower: contact.name.toLowerCase() };
 };
 
 export class IndexedDbAddressBookRepository implements AddressBookRepository {
+    public upsertContact(contact: StoredContact): ResultAsync<StoredContact, StorageError> {
+        if (!contact.id) return errAsync(makeValidationError('id is required'));
+        if (!contact.name) return errAsync(makeValidationError('name is required'));
+        if (!contact.owner) return errAsync(makeValidationError('owner is required'));
 
-  public upsertContact(contact: StoredContact): ResultAsync<StoredContact, StorageError> {
-    if (!contact.id) return errAsync(makeValidationError('id is required'));
-    if (!contact.name) return errAsync(makeValidationError('name is required'));
-    if (!contact.owner) return errAsync(makeValidationError('owner is required'));
+        return fromPromise(
+            db.contacts.put(toRecord(contact)).then(() => contact),
+            (error) => new UnknownError(error),
+        );
+    }
 
-    return fromPromise(
-      db.contacts.put(toRecord(contact)).then(() => contact),
-      (error) => new UnknownError(error)
-    );
-  }
+    public getContactByPublicKey(
+        publicKeyHex: PublicKeyHex,
+    ): ResultAsync<StoredContact | null, StorageError> {
+        if (!publicKeyHex) return errAsync(makeValidationError('publicKeyHex is required'));
 
-  public getContactByPublicKey(publicKeyHex: PublicKeyHex): ResultAsync<StoredContact | null, StorageError> {
-    if (!publicKeyHex) return errAsync(makeValidationError('publicKeyHex is required'));
+        return fromPromise(
+            db.contacts.get(publicKeyHex).then((record) => (record ? formRecord(record) : null)),
+            (error) => new UnknownError(error),
+        );
+    }
 
-    return fromPromise(
-      db.contacts.get(publicKeyHex).then((record) => record ? formRecord(record) : null),
-      (error) => new UnknownError(error)
-    );
-  }
+    public listContacts(options: ListContactsOptions): ResultAsync<StoredContact[], StorageError> {
+        const search = options.search?.trim().toLowerCase();
+        const limit = options.limit;
+        const owner = options.owner;
 
-  public listContacts(options: ListContactsOptions): ResultAsync<StoredContact[], StorageError> {
-    const search = options.search?.trim().toLowerCase();
-    const limit = options.limit;
-    const owner = options.owner;
+        return fromPromise(
+            (async () => {
+                const records = await db.contacts
+                    .where('owner')
+                    .equals(owner)
+                    .limit(limit || 1_000)
+                    .toArray();
 
-    return fromPromise(
-      (async () => {
-        const records = await db.contacts
-          .where('owner')
-          .equals(owner)
-          .limit(limit || 1_000)
-          .toArray();
+                return records.map(formRecord).filter(pipe(prop('name'), includes(search ?? '')));
+            })(),
+            (error) => new UnknownError(error),
+        );
+    }
 
-        return records.map(formRecord)
-          .filter(pipe(prop('name'), includes(search ?? '')));
-      })(),
-      (error) => new UnknownError(error)
-    );
-  }
+    public deleteContact(
+        publicKeyHex: PublicKeyHex,
+        userPublicKeyHex: PublicKeyHex,
+    ): ResultAsync<void, StorageError> {
+        if (!publicKeyHex) return errAsync(makeValidationError('publicKeyHex is required'));
+        if (!userPublicKeyHex) return errAsync(makeValidationError('userPublicKeyHex is required'));
 
-  public deleteContact(publicKeyHex: PublicKeyHex, userPublicKeyHex: PublicKeyHex): ResultAsync<void, StorageError> {
-    if (!publicKeyHex) return errAsync(makeValidationError('publicKeyHex is required'));
-    if (!userPublicKeyHex) return errAsync(makeValidationError('userPublicKeyHex is required'));
-
-    return fromPromise(
-      db.contacts.delete(publicKeyHex).then(always(void 0)),
-      (error) => new UnknownError(error)
-    );
-  }
+        return fromPromise(
+            db.contacts.delete(publicKeyHex).then(always(void 0)),
+            (error) => new UnknownError(error),
+        );
+    }
 }

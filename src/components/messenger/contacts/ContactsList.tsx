@@ -18,15 +18,21 @@ export const ContactsList = ({ onSelectContact }: ContactsListProps) => {
     const selectedContact = useUnit($selectedContact);
     const localSelectContact = useUnit(selectContact);
 
-    const filteredContacts = useMemo(() =>
-        contacts.filter((contact) => contact.name.toLowerCase().includes((search || '').toLowerCase())),
-        [contacts, search]
+    const filteredContacts = useMemo(
+        () =>
+            contacts.filter((contact) =>
+                contact.name.toLowerCase().includes((search || '').toLowerCase()),
+            ),
+        [contacts, search],
     );
 
-    const handleSelectContact = useCallback((contact: Contact) => {
-        localSelectContact(contact.id);
-        onSelectContact?.();
-    }, [localSelectContact, onSelectContact]);
+    const handleSelectContact = useCallback(
+        (contact: Contact) => {
+            localSelectContact(contact.id);
+            onSelectContact?.();
+        },
+        [localSelectContact, onSelectContact],
+    );
 
     return (
         <div className="flex-1 overflow-y-auto">

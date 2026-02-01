@@ -9,8 +9,7 @@ export type KeyPair = {
     privateKey: Uint8Array;
 };
 
-export const generateSeed = () =>
-    generateMnemonic(wordlist, 256);
+export const generateSeed = () => generateMnemonic(wordlist, 256);
 
 export class InvalidSeed extends AppError<'invalid-seed'> {
     public readonly kind = 'invalid-seed';
@@ -28,16 +27,15 @@ export const seedToKeyPair = (seed: string): Result<KeyPair, InvalidSeed> => {
     const masterKey = sodium.crypto_generichash(
         sodium.crypto_kdf_KEYBYTES, // 32 байта
         seed64,
-        new TextEncoder().encode(CONTEXT)
+        new TextEncoder().encode(CONTEXT),
     ) as Uint8Array;
 
     const signingSeed = sodium.crypto_kdf_derive_from_key(
         sodium.crypto_sign_SEEDBYTES, // 32 байта
         SUBKEY_ID,
         CONTEXT,
-        masterKey
+        masterKey,
     ) as Uint8Array;
 
     return ok(sodium.crypto_sign_seed_keypair(signingSeed) as KeyPair);
 };
-

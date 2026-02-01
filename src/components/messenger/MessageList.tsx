@@ -46,49 +46,52 @@ function useMessageReadTracking(params: {
             }
         };
 
-        const observer = new IntersectionObserver((entries) => {
-            const isActive = document.hasFocus() && !document.hidden;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const isActive = document.hasFocus() && !document.hidden;
 
-            for (const entry of entries) {
-                const el = entry.target as HTMLElement;
-                const id = el.dataset.messageId;
-                if (!id) continue;
+                for (const entry of entries) {
+                    const el = entry.target as HTMLElement;
+                    const id = el.dataset.messageId;
+                    if (!id) continue;
 
-                // если уже отправили — больше не трекаем
-                if (firedRef.current.has(id)) {
-                    clearTimer(id);
-                    continue;
-                }
-
-                // если элемент ушёл из видимости или вкладка неактивна — отменяем таймер
-                if (!isActive || !entry.isIntersecting || entry.intersectionRatio < threshold) {
-                    clearTimer(id);
-                    continue;
-                }
-
-                // уже ждём minVisibleMs
-                if (timersRef.current.has(id)) {
-                    continue;
-                }
-
-                const handle = window.setTimeout(() => {
-                    timersRef.current.delete(id);
-
-                    // повторная проверка на момент срабатывания
-                    if (!document.hasFocus() || document.hidden) {
-                        return;
-                    }
+                    // если уже отправили — больше не трекаем
                     if (firedRef.current.has(id)) {
-                        return;
+                        clearTimer(id);
+                        continue;
                     }
 
-                    firedRef.current.add(id);
-                    onRead(id);
-                }, minVisibleMs);
+                    // если элемент ушёл из видимости или вкладка неактивна — отменяем таймер
+                    if (!isActive || !entry.isIntersecting || entry.intersectionRatio < threshold) {
+                        clearTimer(id);
+                        continue;
+                    }
 
-                timersRef.current.set(id, handle);
-            }
-        }, { root, threshold });
+                    // уже ждём minVisibleMs
+                    if (timersRef.current.has(id)) {
+                        continue;
+                    }
+
+                    const handle = window.setTimeout(() => {
+                        timersRef.current.delete(id);
+
+                        // повторная проверка на момент срабатывания
+                        if (!document.hasFocus() || document.hidden) {
+                            return;
+                        }
+                        if (firedRef.current.has(id)) {
+                            return;
+                        }
+
+                        firedRef.current.add(id);
+                        onRead(id);
+                    }, minVisibleMs);
+
+                    timersRef.current.set(id, handle);
+                }
+            },
+            { root, threshold },
+        );
 
         const idsToObserve = messages
             .filter((m) => m.direction === MessageDirection.Incoming && !m.readAt)
@@ -117,10 +120,10 @@ const MessageItem = ({
     contactName,
     contactHash,
 }: {
-    message: Message
-    formatTime: (date: number) => string
-    contactName: string
-    contactHash: string
+    message: Message;
+    formatTime: (date: number) => string;
+    contactName: string;
+    contactHash: string;
 }) => {
     const keyPair = useUnit($keyPair);
 
@@ -132,25 +135,24 @@ const MessageItem = ({
             className={`flex items-start gap-3 ${message.direction === MessageDirection.Outgoing ? 'flex-row-reverse' : 'flex-row'}`}
         >
             {message.direction === MessageDirection.Incoming && (
-                <HashAvatar
-                    hash={contactHash}
-                    name={contactName}
-                    className="h-8 w-8 shrink-0"
-                />
+                <HashAvatar hash={contactHash} name={contactName} className="h-8 w-8 shrink-0" />
             )}
 
             <div
                 className={`flex flex-col gap-1 max-w-[70%] ${message.direction == MessageDirection.Outgoing ? 'items-end' : 'items-start'}`}
             >
                 <div
-                    className={`px-4 py-2.5 rounded-2xl ${message.direction == MessageDirection.Outgoing
-                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                        : 'bg-neutral-800 text-card-foreground rounded-tl-sm'
-                        }`}
+                    className={`px-4 py-2.5 rounded-2xl ${
+                        message.direction == MessageDirection.Outgoing
+                            ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                            : 'bg-neutral-800 text-card-foreground rounded-tl-sm'
+                    }`}
                 >
                     <p className="text-sm leading-relaxed">{text}</p>
                 </div>
-                <span className="text-xs text-muted-foreground px-2">{formatTime(message.createdAt)}</span>
+                <span className="text-xs text-muted-foreground px-2">
+                    {formatTime(message.createdAt)}
+                </span>
             </div>
         </div>
     );
@@ -175,7 +177,7 @@ export const MessageList = () => {
         }
 
         messagesEndRef.current?.scrollIntoView(
-            prevCount === 0 ? { behavior: 'instant' } : { behavior: 'smooth' }
+            prevCount === 0 ? { behavior: 'instant' } : { behavior: 'smooth' },
         );
     }, [messages]);
 
@@ -198,11 +200,13 @@ export const MessageList = () => {
         <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-6">
             <div className="space-y-4">
                 {messages.map((message) => (
-                    <MessageItem key={message.id}
+                    <MessageItem
+                        key={message.id}
                         message={message}
                         formatTime={formatTime}
                         contactName={contact.name}
-                        contactHash={contact.id} />
+                        contactHash={contact.id}
+                    />
                 ))}
                 <div ref={messagesEndRef} />
             </div>

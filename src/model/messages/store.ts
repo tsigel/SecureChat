@@ -3,7 +3,13 @@ import type { StoredMessage } from '@/storage';
 import { MessageDirection } from '@/storage';
 import { propEq } from 'ramda';
 import { $selectedContact } from '@/model/contacts';
-import { loadMessagesFx, markAsDeletedFromServerFx, markAsDeliveredFx, markAsReadFx, saveMessagesFx } from './storage';
+import {
+    loadMessagesFx,
+    markAsDeletedFromServerFx,
+    markAsDeliveredFx,
+    markAsReadFx,
+    saveMessagesFx,
+} from './storage';
 import { mergeMessages } from './utils';
 import { sample } from 'effector';
 
@@ -32,7 +38,11 @@ export const $messages = appD
         let changed = false;
         for (let i = 0; i < saved.length; i++) {
             const msg = saved[i];
-            if (msg.direction === MessageDirection.Incoming && ids.includes(msg.id) && !msg.deletedFromServer) {
+            if (
+                msg.direction === MessageDirection.Incoming &&
+                ids.includes(msg.id) &&
+                !msg.deletedFromServer
+            ) {
                 msg.deletedFromServer = true;
                 changed = true;
             }
@@ -61,11 +71,10 @@ sample({
     fn: (contact, saved) => {
         const contactId = contact!.id;
         return saved.filter((m) =>
-            m.direction === MessageDirection.Incoming ? m.sender === contactId : m.recipient === contactId
+            m.direction === MessageDirection.Incoming
+                ? m.sender === contactId
+                : m.recipient === contactId,
         );
     },
     target: mergeSavedMessagesForSelectedContact,
 });
-
-
-

@@ -29,10 +29,10 @@ export function EnterPassword({ account, onSuccess, onBack }: EnterPasswordProps
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <Card className="w-full max-w-md p-8 space-y-6 bg-card border-border">
                 <div className="flex flex-col items-center gap-4 text-center">
-                    <HashAvatar 
-                        hash={account.publicKey} 
-                        name={account.name} 
-                        className="h-16 w-16" 
+                    <HashAvatar
+                        hash={account.publicKey}
+                        name={account.name}
+                        className="h-16 w-16"
                     />
                     <div className="space-y-1">
                         <h1 className="text-2xl font-semibold text-foreground">Введите пароль</h1>
@@ -55,9 +55,7 @@ export function EnterPassword({ account, onSuccess, onBack }: EnterPasswordProps
                             autoFocus
                         />
                     </div>
-                    {error && (
-                        <p className="text-sm text-destructive font-medium">{error}</p>
-                    )}
+                    {error && <p className="text-sm text-destructive font-medium">{error}</p>}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -66,11 +64,7 @@ export function EnterPassword({ account, onSuccess, onBack }: EnterPasswordProps
                             Назад
                         </Button>
                     )}
-                    <Button 
-                        onClick={handleLogin} 
-                        disabled={!password} 
-                        className="w-full sm:flex-1"
-                    >
+                    <Button onClick={handleLogin} disabled={!password} className="w-full sm:flex-1">
                         Войти
                     </Button>
                 </div>

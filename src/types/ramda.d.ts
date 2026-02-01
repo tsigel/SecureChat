@@ -11,5 +11,4 @@ declare module 'ramda' {
     export function nthArg<T>(n: 1): (_, a: T) => T;
     export function nthArg<T>(n: 2): (_, _, a: T) => T;
     export function nthArg<T>(n: 3): (_, _, _, a: T) => T;
-
 }

@@ -51,18 +51,12 @@ export function RenameUserDialog({
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Переименовать пользователя</DialogTitle>
-                    <DialogDescription>
-                        Введите новое имя для {currentName}
-                    </DialogDescription>
+                    <DialogDescription>Введите новое имя для {currentName}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                         <Label htmlFor="rename-value">Имя</Label>
-                        <Input
-                            id="rename-value"
-                            value={name}
-                            onChange={handleNameChange}
-                        />
+                        <Input id="rename-value" value={name} onChange={handleNameChange} />
                     </div>
                 </div>
                 <DialogFooter>

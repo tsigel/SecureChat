@@ -22,13 +22,16 @@ export function ConfirmSeed({ seedPhrase, onBack, onComplete }: ConfirmSeedProps
         setShuffledWords(shuffled);
     }, [seedPhrase]);
 
-    const handleWordClick = useCallback((word: string) => {
-        if (selectedWords.length < SEED_WORDS_COUNT) {
-            setSelectedWords((prev) => [...prev, word]);
-            setShuffledWords((prev) => prev.filter((w) => w !== word));
-            setError(false);
-        }
-    }, [selectedWords.length]);
+    const handleWordClick = useCallback(
+        (word: string) => {
+            if (selectedWords.length < SEED_WORDS_COUNT) {
+                setSelectedWords((prev) => [...prev, word]);
+                setShuffledWords((prev) => prev.filter((w) => w !== word));
+                setError(false);
+            }
+        },
+        [selectedWords.length],
+    );
 
     const handleRemoveWord = useCallback((index: number) => {
         setSelectedWords((prev) => {
@@ -64,16 +67,20 @@ export function ConfirmSeed({ seedPhrase, onBack, onComplete }: ConfirmSeedProps
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <Card className="w-full max-w-2xl p-8 space-y-6 bg-card border-border">
                 <div className="space-y-2">
-                    <h1 className="text-2xl font-semibold text-foreground">Подтвердите seed-фразу</h1>
+                    <h1 className="text-2xl font-semibold text-foreground">
+                        Подтвердите seed-фразу
+                    </h1>
                     <p className="text-sm text-muted-foreground">
-                        Выберите слова в правильном порядке, чтобы подтвердить, что вы записали фразу.
+                        Выберите слова в правильном порядке, чтобы подтвердить, что вы записали
+                        фразу.
                     </p>
                 </div>
 
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">Выбранные
-                            слова: {selectedWords.length}/{SEED_WORDS_COUNT}</p>
+                        <p className="text-sm font-medium text-foreground">
+                            Выбранные слова: {selectedWords.length}/{SEED_WORDS_COUNT}
+                        </p>
                         <div className="min-h-[120px] bg-secondary/50 border border-border rounded-lg p-4">
                             {selectedWords.length > 0 ? (
                                 <div className="flex flex-wrap gap-2">
@@ -91,7 +98,9 @@ export function ConfirmSeed({ seedPhrase, onBack, onComplete }: ConfirmSeedProps
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full">
-                                    <p className="text-sm text-muted-foreground">Выберите слова ниже</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Выберите слова ниже
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -99,7 +108,9 @@ export function ConfirmSeed({ seedPhrase, onBack, onComplete }: ConfirmSeedProps
 
                     {error && (
                         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
-                            <p className="text-sm text-destructive">Неправильный порядок слов. Попробуйте еще раз.</p>
+                            <p className="text-sm text-destructive">
+                                Неправильный порядок слов. Попробуйте еще раз.
+                            </p>
                         </div>
                     )}
 
@@ -120,13 +131,16 @@ export function ConfirmSeed({ seedPhrase, onBack, onComplete }: ConfirmSeedProps
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-
                     {onBack && (
                         <Button variant="ghost" onClick={onBack} className="w-full sm:flex-1">
                             Назад
                         </Button>
                     )}
-                    <Button onClick={handleVerify} disabled={!isComplete} className="w-full sm:flex-1">
+                    <Button
+                        onClick={handleVerify}
+                        disabled={!isComplete}
+                        className="w-full sm:flex-1"
+                    >
                         Подтвердить и продолжить
                     </Button>
                 </div>

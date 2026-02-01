@@ -11,15 +11,19 @@ import type { KeyPair } from '@/utils/seedHelpers';
 export const decrypt = (
     encrypted: string,
     senderPublicKey: Uint8Array,
-    recipient: KeyPair
+    recipient: KeyPair,
 ): Uint8Array => {
     const bytes = sodium.from_base64(encrypted);
     const nonceLength = sodium.crypto_box_NONCEBYTES;
     const nonce = bytes.subarray(0, nonceLength);
     const cipher = bytes.subarray(nonceLength);
 
-    const senderCurvePublic = sodium.crypto_sign_ed25519_pk_to_curve25519(senderPublicKey) as Uint8Array;
-    const recipientCurveSecret = sodium.crypto_sign_ed25519_sk_to_curve25519(recipient.privateKey) as Uint8Array;
+    const senderCurvePublic = sodium.crypto_sign_ed25519_pk_to_curve25519(
+        senderPublicKey,
+    ) as Uint8Array;
+    const recipientCurveSecret = sodium.crypto_sign_ed25519_sk_to_curve25519(
+        recipient.privateKey,
+    ) as Uint8Array;
 
     return sodium.crypto_box_open_easy(cipher, nonce, senderCurvePublic, recipientCurveSecret);
 };
@@ -31,11 +35,7 @@ export const decrypt = (
  * @param recipient - Публичный ключ получателя
  * @returns Зашифрованные данные в виде Uint8Array (nonce + cipher)
  */
-export const encrypt = (
-    payload: Uint8Array,
-    pair: KeyPair,
-    recipient: Uint8Array
-): Uint8Array => {
+export const encrypt = (payload: Uint8Array, pair: KeyPair, recipient: Uint8Array): Uint8Array => {
     const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES);
     const recipientCurveKey = sodium.crypto_sign_ed25519_pk_to_curve25519(recipient);
     const senderCurveSecret = sodium.crypto_sign_ed25519_sk_to_curve25519(pair.privateKey);

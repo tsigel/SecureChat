@@ -71,15 +71,19 @@ export type MarkAsDeletedFromServerFxProps = {
  */
 export const markAsDeletedFromServerFx = attach({
     effect: appD.createEffect(async ({ storage, ids }: MarkAsDeletedFromServerFxProps) => {
-        const results = await asyncMap(5, async (id) => {
-            try {
-                await fromAsyncResult(storage.messages.markAsDeletedFromServer({ id }));
-                return { ok: true as const, id };
-            } catch (error) {
-                console.error('Error marking message as deleted from server', error);
-                return { ok: false as const, id };
-            }
-        }, ids);
+        const results = await asyncMap(
+            5,
+            async (id) => {
+                try {
+                    await fromAsyncResult(storage.messages.markAsDeletedFromServer({ id }));
+                    return { ok: true as const, id };
+                } catch (error) {
+                    console.error('Error marking message as deleted from server', error);
+                    return { ok: false as const, id };
+                }
+            },
+            ids,
+        );
 
         return results.filter(prop('ok')).map(prop('id'));
     }),

@@ -1,13 +1,13 @@
 version: '3.8'
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: securechat
-    ports:
-      - "${PORT:-8080}:80"
-    restart: unless-stopped
-    environment:
-      - NODE_ENV=production
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: securechat
+        ports:
+            - '${PORT:-8080}:80'
+        restart: unless-stopped
+        environment:
+            - NODE_ENV=production

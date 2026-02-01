@@ -14,13 +14,13 @@ interface GenerateSeedProps {
 }
 
 export function GenerateSeed({
-                                 seedPhrase,
-                                 onNext,
-                                 onSeedChange,
-                                 onRegenerate,
-                                 onBack,
-                                 onCancel,
-                             }: GenerateSeedProps) {
+    seedPhrase,
+    onNext,
+    onSeedChange,
+    onRegenerate,
+    onBack,
+    onCancel,
+}: GenerateSeedProps) {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = useCallback(async () => {
@@ -29,11 +29,14 @@ export function GenerateSeed({
         setTimeout(() => setCopied(false), 2000);
     }, [seedPhrase]);
 
-    const handleWordChange = useCallback((index: number, value: string) => {
-        const nextSeed = [...seedPhrase];
-        nextSeed[index] = value.toLowerCase().trim();
-        onSeedChange(nextSeed);
-    }, [seedPhrase, onSeedChange]);
+    const handleWordChange = useCallback(
+        (index: number, value: string) => {
+            const nextSeed = [...seedPhrase];
+            nextSeed[index] = value.toLowerCase().trim();
+            onSeedChange(nextSeed);
+        },
+        [seedPhrase, onSeedChange],
+    );
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -41,9 +44,8 @@ export function GenerateSeed({
                 <div className="space-y-2">
                     <h1 className="text-2xl font-semibold text-foreground">Запишите seed-фразу</h1>
                     <p className="text-sm text-muted-foreground">
-                        Эта фраза из 12 слов - единственный способ восстановить доступ к вашему аккаунту. Храните её в
-                        безопасном
-                        месте и никому не показывайте.
+                        Эта фраза из 12 слов - единственный способ восстановить доступ к вашему
+                        аккаунту. Храните её в безопасном месте и никому не показывайте.
                     </p>
                 </div>
 
@@ -59,10 +61,9 @@ export function GenerateSeed({
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {seedPhrase.map((word, index) => (
                                 <div key={index} className="relative">
-                  <span
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono pointer-events-none">
-                    {index + 1}.
-                  </span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono pointer-events-none">
+                                        {index + 1}.
+                                    </span>
                                     <Input
                                         value={word}
                                         onChange={(e) => handleWordChange(index, e.target.value)}
@@ -76,15 +77,19 @@ export function GenerateSeed({
                         </div>
                     </div>
 
-                    <Button variant="outline" onClick={handleCopy} className="w-full gap-2 bg-transparent">
+                    <Button
+                        variant="outline"
+                        onClick={handleCopy}
+                        className="w-full gap-2 bg-transparent"
+                    >
                         {copied ? (
                             <>
-                                <Check className="h-4 w-4"/>
+                                <Check className="h-4 w-4" />
                                 Скопировано
                             </>
                         ) : (
                             <>
-                                <Copy className="h-4 w-4"/>
+                                <Copy className="h-4 w-4" />
                                 Скопировать фразу
                             </>
                         )}
@@ -102,7 +107,6 @@ export function GenerateSeed({
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-4">
-
                         {onBack && (
                             <Button variant="outline" onClick={onBack} className="w-full sm:flex-1">
                                 Назад

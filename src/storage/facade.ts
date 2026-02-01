@@ -15,11 +15,11 @@ export type MarkAsReadParams = {
 
 export type MarkAsDeletedFromServerParams = {
     id: string;
-}
+};
 
 export type MarkAsDeliveredParams = {
     id: string;
-}
+};
 
 export type LoadMessagesParams = {
     limit?: number;
@@ -27,7 +27,7 @@ export type LoadMessagesParams = {
     dateLte?: number;
     owner?: string;
     publicKeyHex?: string;
-}
+};
 
 export interface AddressBookRepository {
     upsertContact(contact: StoredContact): ResultAsync<StoredContact, StorageError>;
@@ -79,4 +79,3 @@ export interface StorageFacade {
     contacts: AddressBookRepository;
     messages: MessageRepository;
 }
-

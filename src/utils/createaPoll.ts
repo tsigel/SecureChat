@@ -4,14 +4,14 @@ import { always } from 'ramda';
 import { Gate } from 'effector-react';
 
 export function createPoll<T extends Source<any>, Fn extends (data: TypeOfSource<T>) => any>({
-                                                                                                 domain,
-                                                                                                 fx,
-                                                                                                 delay,
-                                                                                                 source,
-                                                                                                 fn,
-                                                                                                 gate,
-                                                                                                 launchAfterDelay,
-                                                                                             }: PollOptions<T, Fn>): EffectorPoll {
+    domain,
+    fx,
+    delay,
+    source,
+    fn,
+    gate,
+    launchAfterDelay,
+}: PollOptions<T, Fn>): EffectorPoll {
     const start = domain.createEvent();
     const stop = domain.createEvent();
     const $isPlayed = domain.createStore(false);
@@ -40,9 +40,7 @@ export function createPoll<T extends Source<any>, Fn extends (data: TypeOfSource
         mapParams: (timer: number | null, delay) => ({ timer, delay }),
     });
 
-    $isPlayed
-        .on(start, always(true))
-        .on(stop, always(false));
+    $isPlayed.on(start, always(true)).on(stop, always(false));
 
     sample({
         clock: start,
@@ -50,8 +48,7 @@ export function createPoll<T extends Source<any>, Fn extends (data: TypeOfSource
         target: _onStartFx,
     });
 
-    _$timer
-        .on(start, always(null));
+    _$timer.on(start, always(null));
 
     sample({
         clock: _launchEffect,

@@ -1,12 +1,7 @@
 import { Volume2, VolumeOff } from 'lucide-react';
 import { useUnit } from 'effector-react';
 import { $soundEnabled, toggleSound } from '@/model/settings';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface SettingsDialogProps {
     isOpen: boolean;

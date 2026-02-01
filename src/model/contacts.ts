@@ -12,7 +12,6 @@ import { decodeText, decrypt } from '@/lib/crypto';
 import { fromAsyncResult } from '@/lib/fromResult';
 import type { KeyPair } from '@/utils/seedHelpers';
 
-
 export const addOrRenameContact = appD.createEvent<StoredContact>();
 export const selectContact = appD.createEvent<string>();
 export const setSearch = appD.createEvent<string | null>();
@@ -22,14 +21,14 @@ export const refreshUnknownChats = appD.createEvent<void>();
 
 export const ContactsGate = createGate({
     domain: appD,
-    name: 'ContactsGate'
+    name: 'ContactsGate',
 });
 
 type LoadContactsParams = {
     storage: StorageFacade;
     owner: string;
     keyPair: KeyPair;
-}
+};
 
 type ContactMeta = { id: string; lastMessage?: string; timestamp?: number; unread?: number };
 
@@ -40,84 +39,89 @@ type RefreshContactsMetaParams = {
     keyPair: KeyPair;
 };
 
-const refreshContactsMetaFx = appD.createEffect<RefreshContactsMetaParams, ContactMeta[]>(async ({
-    ids,
-    storage,
-    owner,
-    keyPair,
-}) => {
-    const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
-    if (!uniqueIds.length) {
-        return [];
-    }
-
-    const metas = await asyncMap(5, async (contactId): Promise<ContactMeta | null> => {
-        try {
-            const result = await storage.messages.loadMessages({
-                publicKeyHex: contactId,
-                owner
-            });
-            if (result.isErr()) {
-                throw result.error;
-            }
-
-            return {
-                id: contactId,
-                unread: getUnreadCount(result.value),
-                ...getLastMessage(result.value, keyPair)
-            };
-        } catch (error) {
-            console.error('[contacts] refreshContactsMetaFx error', { contactId, error });
-            return null;
+const refreshContactsMetaFx = appD.createEffect<RefreshContactsMetaParams, ContactMeta[]>(
+    async ({ ids, storage, owner, keyPair }) => {
+        const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
+        if (!uniqueIds.length) {
+            return [];
         }
-    }, uniqueIds);
 
-    return metas.filter((m): m is ContactMeta => !!m);
-});
+        const metas = await asyncMap(
+            5,
+            async (contactId): Promise<ContactMeta | null> => {
+                try {
+                    const result = await storage.messages.loadMessages({
+                        publicKeyHex: contactId,
+                        owner,
+                    });
+                    if (result.isErr()) {
+                        throw result.error;
+                    }
 
-const loadContactsFx = appD.createEffect<LoadContactsParams, Contact[]>(async ({
-    storage,
-    owner,
-    keyPair,
-}) => {
-    const result = await storage.contacts.listContacts({ owner });
-    if (result.isErr()) {
-        throw result.error;
-    }
-    const contacts = await asyncMap(5, (contact) => {
-        return storage.messages.loadMessages({
-            publicKeyHex: contact.id,
-            owner
-        }).then((result): Promise<never> | Contact => {
-            if (result.isErr()) {
-                return Promise.reject(result.error);
-            }
+                    return {
+                        id: contactId,
+                        unread: getUnreadCount(result.value),
+                        ...getLastMessage(result.value, keyPair),
+                    };
+                } catch (error) {
+                    console.error('[contacts] refreshContactsMetaFx error', { contactId, error });
+                    return null;
+                }
+            },
+            uniqueIds,
+        );
 
-            return {
-                id: contact.id,
-                name: contact.name,
-                online: false,
-                unread: getUnreadCount(result.value),
-                ...getLastMessage(result.value, keyPair)
-            } as Contact;
-        });
-    }, result.value);
-    return contacts as Contact[];
-});
+        return metas.filter((m): m is ContactMeta => !!m);
+    },
+);
+
+const loadContactsFx = appD.createEffect<LoadContactsParams, Contact[]>(
+    async ({ storage, owner, keyPair }) => {
+        const result = await storage.contacts.listContacts({ owner });
+        if (result.isErr()) {
+            throw result.error;
+        }
+        const contacts = await asyncMap(
+            5,
+            (contact) => {
+                return storage.messages
+                    .loadMessages({
+                        publicKeyHex: contact.id,
+                        owner,
+                    })
+                    .then((result): Promise<never> | Contact => {
+                        if (result.isErr()) {
+                            return Promise.reject(result.error);
+                        }
+
+                        return {
+                            id: contact.id,
+                            name: contact.name,
+                            online: false,
+                            unread: getUnreadCount(result.value),
+                            ...getLastMessage(result.value, keyPair),
+                        } as Contact;
+                    });
+            },
+            result.value,
+        );
+        return contacts as Contact[];
+    },
+);
 
 type DeleteContactProps = {
-    storage: StorageFacade,
+    storage: StorageFacade;
     contactId: string;
     owner: string;
-}
+};
 
 const deleteContactFx = appD.createEffect(({ storage, contactId, owner }: DeleteContactProps) => {
     return fromAsyncResult(storage.contacts.deleteContact(contactId, owner));
 });
 
 type AddContactProps = {
-    contact: StoredContact,
-    storage: StorageFacade
+    contact: StoredContact;
+    storage: StorageFacade;
 };
 
 const addContactFx = appD.createEffect(({ contact, storage }: AddContactProps) => {
@@ -131,51 +135,53 @@ type LoadUnknownChatsParams = {
     knownContactIds: string[];
 };
 
-const loadUnknownChatsFx = appD.createEffect<LoadUnknownChatsParams, Contact[]>(async ({
-    storage,
-    owner,
-    keyPair,
-    knownContactIds,
-}) => {
-    const known = new Set(knownContactIds);
+const loadUnknownChatsFx = appD.createEffect<LoadUnknownChatsParams, Contact[]>(
+    async ({ storage, owner, keyPair, knownContactIds }) => {
+        const known = new Set(knownContactIds);
 
-    const peerIds = await fromAsyncResult(storage.messages.listUniquePeerIds(owner));
-    const unknownIds = peerIds
-        .filter(Boolean)
-        .filter((id) => id !== owner)
-        .filter((id) => !known.has(id));
+        const peerIds = await fromAsyncResult(storage.messages.listUniquePeerIds(owner));
+        const unknownIds = peerIds
+            .filter(Boolean)
+            .filter((id) => id !== owner)
+            .filter((id) => !known.has(id));
 
-    if (!unknownIds.length) {
-        return [];
-    }
-
-    const metas = await asyncMap(5, async (contactId): Promise<Contact | null> => {
-        try {
-            const result = await storage.messages.loadMessages({
-                publicKeyHex: contactId,
-                owner,
-            });
-            if (result.isErr()) {
-                throw result.error;
-            }
-
-            return {
-                id: contactId,
-                name: formatUnknownName(contactId),
-                online: false,
-                unread: getUnreadCount(result.value),
-                ...getLastMessage(result.value, keyPair),
-            } satisfies Contact;
-        } catch (error) {
-            console.error('[contacts] loadUnknownChatsFx error', { contactId, error });
-            return null;
+        if (!unknownIds.length) {
+            return [];
         }
-    }, unknownIds);
 
-    return orderContacts(metas.filter((m): m is Contact => !!m));
-});
+        const metas = await asyncMap(
+            5,
+            async (contactId): Promise<Contact | null> => {
+                try {
+                    const result = await storage.messages.loadMessages({
+                        publicKeyHex: contactId,
+                        owner,
+                    });
+                    if (result.isErr()) {
+                        throw result.error;
+                    }
 
-export const $contacts = appD.createStore<Contact[]>([])
+                    return {
+                        id: contactId,
+                        name: formatUnknownName(contactId),
+                        online: false,
+                        unread: getUnreadCount(result.value),
+                        ...getLastMessage(result.value, keyPair),
+                    } satisfies Contact;
+                } catch (error) {
+                    console.error('[contacts] loadUnknownChatsFx error', { contactId, error });
+                    return null;
+                }
+            },
+            unknownIds,
+        );
+
+        return orderContacts(metas.filter((m): m is Contact => !!m));
+    },
+);
+
+export const $contacts = appD
+    .createStore<Contact[]>([])
     .on(loadContactsFx.doneData, pipe(nthArg(1), orderContacts))
     .on(refreshContactsMetaFx.doneData, (contacts, metas) => {
         if (!metas.length) {
@@ -197,7 +203,8 @@ export const $contacts = appD.createStore<Contact[]>([])
     })
     .reset(logOut);
 
-export const $unknownChats = appD.createStore<Contact[]>([])
+export const $unknownChats = appD
+    .createStore<Contact[]>([])
     .on(loadUnknownChatsFx.doneData, pipe(nthArg(1), orderContacts))
     .on(refreshContactsMetaFx.doneData, (chats, metas) => {
         if (!metas.length) {
@@ -220,12 +227,13 @@ export const $unknownChats = appD.createStore<Contact[]>([])
     .reset(logOut);
 
 export const $allChats = combine($contacts, $unknownChats, (known, unknown) =>
-    orderContacts([...known, ...unknown])
+    orderContacts([...known, ...unknown]),
 );
 
-export const $selectedContact = appD.createStore<Contact | null>(null)
+export const $selectedContact = appD
+    .createStore<Contact | null>(null)
     .on(deleteContact, (selected, publicKeyHex) =>
-        selected?.id === publicKeyHex ? null : selected
+        selected?.id === publicKeyHex ? null : selected,
     )
     .on(refreshContactsMetaFx.doneData, (selected, metas) => {
         if (!selected || !metas.length) {
@@ -240,7 +248,8 @@ export const $selectedContact = appD.createStore<Contact | null>(null)
     })
     .reset(logOut);
 
-export const $search = appD.createStore<string | null>(null)
+export const $search = appD
+    .createStore<string | null>(null)
     .on(setSearch, (_, value) => value)
     .reset(logOut);
 
@@ -249,7 +258,7 @@ sample({
     source: $selectedContact,
     filter: (selectedContact) => !selectedContact,
     fn: (_, contact) => contact,
-    target: $selectedContact
+    target: $selectedContact,
 });
 
 sample({
@@ -257,21 +266,29 @@ sample({
     source: {
         storage: $storage,
         keyPair: $keyPair,
-        owner: $pk
+        owner: $pk,
     },
     filter: (data): data is LoadContactsParams => data.owner != null && data.keyPair != null,
-    target: loadContactsFx
+    target: loadContactsFx,
 });
 
 sample({
-    clock: [ContactsGate.open, loadContactsFx.doneData, addContactFx.doneData, deleteContactFx.doneData, refreshUnknownChats],
+    clock: [
+        ContactsGate.open,
+        loadContactsFx.doneData,
+        addContactFx.doneData,
+        deleteContactFx.doneData,
+        refreshUnknownChats,
+    ],
     source: {
         storage: $storage,
         keyPair: $keyPair,
         owner: $pk,
         contacts: $contacts,
     },
-    filter: (source): source is { storage: StorageFacade; keyPair: KeyPair; owner: string; contacts: Contact[] } =>
+    filter: (
+        source,
+    ): source is { storage: StorageFacade; keyPair: KeyPair; owner: string; contacts: Contact[] } =>
         source.owner != null && source.keyPair != null,
     fn: (source): LoadUnknownChatsParams => ({
         storage: source.storage,
@@ -286,7 +303,7 @@ sample({
     clock: addOrRenameContact,
     source: $storage,
     fn: (storage, contact): AddContactProps => ({ storage, contact }),
-    target: addContactFx
+    target: addContactFx,
 });
 
 sample({
@@ -294,14 +311,14 @@ sample({
     source: { storage: $storage, owner: $pk },
     filter: (source) => !!source.owner,
     fn: (source, contactId): DeleteContactProps => ({ ...source, contactId }) as DeleteContactProps,
-    target: deleteContactFx
+    target: deleteContactFx,
 });
 
 sample({
     clock: selectContact,
     source: $allChats,
     fn: (chats, id) => chats.find(propEq(id, 'id')) || null,
-    target: $selectedContact
+    target: $selectedContact,
 });
 
 sample({
@@ -309,17 +326,18 @@ sample({
     source: {
         storage: $storage,
         keyPair: $keyPair,
-        owner: $pk
+        owner: $pk,
     },
     filter: (source, ids): source is { storage: StorageFacade; keyPair: KeyPair; owner: string } =>
         !!source.owner && !!source.keyPair && ids.length > 0,
-    fn: (source, ids): RefreshContactsMetaParams => ({
-        ids,
-        storage: source.storage,
-        owner: source.owner,
-        keyPair: source.keyPair
-    }) as RefreshContactsMetaParams,
-    target: refreshContactsMetaFx
+    fn: (source, ids): RefreshContactsMetaParams =>
+        ({
+            ids,
+            storage: source.storage,
+            owner: source.owner,
+            keyPair: source.keyPair,
+        }) as RefreshContactsMetaParams,
+    target: refreshContactsMetaFx,
 });
 
 sample({
@@ -357,25 +375,26 @@ function getUnreadCount(messages: StoredMessage[]): number {
     return unread;
 }
 
-function getLastMessage(messages: StoredMessage[], userKeyPair: KeyPair): { lastMessage?: string, timestamp?: number } {
+function getLastMessage(
+    messages: StoredMessage[],
+    userKeyPair: KeyPair,
+): { lastMessage?: string; timestamp?: number } {
     const lastStoredMessage = messages.at(0);
 
     if (!lastStoredMessage) {
         return {};
     }
 
-    const peerPublicKeyHex = lastStoredMessage.direction === 'incoming'
-        ? lastStoredMessage.sender
-        : lastStoredMessage.recipient;
+    const peerPublicKeyHex =
+        lastStoredMessage.direction === 'incoming'
+            ? lastStoredMessage.sender
+            : lastStoredMessage.recipient;
 
     return {
         lastMessage: decodeText(
-            decrypt(
-                lastStoredMessage.encrypted,
-                sodium.from_hex(peerPublicKeyHex),
-                userKeyPair
-            )),
-        timestamp: lastStoredMessage.createdAt
+            decrypt(lastStoredMessage.encrypted, sodium.from_hex(peerPublicKeyHex), userKeyPair),
+        ),
+        timestamp: lastStoredMessage.createdAt,
     };
 }
 

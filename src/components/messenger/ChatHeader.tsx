@@ -78,9 +78,12 @@ export function ChatHeader({
         }
     }, [contact.id]);
 
-    const handleChatSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        onChatSearchChange(e.target.value);
-    }, [onChatSearchChange]);
+    const handleChatSearchChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            onChatSearchChange(e.target.value);
+        },
+        [onChatSearchChange],
+    );
 
     const handleToggleChatSearchClick = useCallback(() => {
         onToggleChatSearch();
@@ -135,7 +138,11 @@ export function ChatHeader({
                             >
                                 <Menu className="h-5 w-5" />
                             </Button>
-                            <HashAvatar hash={contact.id} name={contact.name} className="h-10 w-10" />
+                            <HashAvatar
+                                hash={contact.id}
+                                name={contact.name}
+                                className="h-10 w-10"
+                            />
                             <div className="flex flex-col">
                                 <span className="font-medium text-sm">{contact.name}</span>
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -167,8 +174,8 @@ export function ChatHeader({
                             permission === 'denied'
                                 ? 'Уведомления заблокированы в браузере'
                                 : isPushEnabled
-                                    ? 'Push‑уведомления включены'
-                                    : 'Включить push‑уведомления'
+                                  ? 'Push‑уведомления включены'
+                                  : 'Включить push‑уведомления'
                         }
                     >
                         {isPushEnabled ? (

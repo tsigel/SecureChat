@@ -41,7 +41,7 @@ export function HashAvatar({ hash, name, className }: HashAvatarProps) {
 
     return (
         <Avatar className={cn('h-10 w-10', className)}>
-            {avatarUrl && <AvatarImage src={avatarUrl} alt={name || 'Avatar'}/>}
+            {avatarUrl && <AvatarImage src={avatarUrl} alt={name || 'Avatar'} />}
             <AvatarFallback className="bg-muted text-foreground">
                 {name ? name[0].toUpperCase() : '?'}
             </AvatarFallback>

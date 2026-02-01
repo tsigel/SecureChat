@@ -55,9 +55,9 @@ export function CreateName({ seed, onNext, onBack }: CreateNameProps) {
                             Назад
                         </Button>
                     )}
-                    <Button 
-                        onClick={handleContinue} 
-                        disabled={!name.trim()} 
+                    <Button
+                        onClick={handleContinue}
+                        disabled={!name.trim()}
                         className="w-full sm:flex-1"
                     >
                         Готово

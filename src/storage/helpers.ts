@@ -2,6 +2,10 @@ import { IncomingMessage, OutgoingMessage, PublicKeyHex, Stored } from '@/storag
 import { MessageRepository } from '@/storage/facade';
 import { head } from 'ramda';
 
-export const addMessage = <T extends IncomingMessage | OutgoingMessage>(message: T, pk: PublicKeyHex, repo: MessageRepository) => {
+export const addMessage = <T extends IncomingMessage | OutgoingMessage>(
+    message: T,
+    pk: PublicKeyHex,
+    repo: MessageRepository,
+) => {
     return repo.addMessages([{ ...message, owner: pk }]).map<Stored<T>>(head);
 };

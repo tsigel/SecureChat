@@ -1,5 +1,5 @@
 export abstract class AppError<T extends string> extends Error {
-    public readonly abstract kind: T;
+    public abstract readonly kind: T;
     public readonly message: string;
 
     public constructor(message: string) {
@@ -29,7 +29,7 @@ export class UnknownError extends AppError<'unknown-error'> {
     }
 }
 
-function parseError(e: unknown): { message: string, stack?: string } {
+function parseError(e: unknown): { message: string; stack?: string } {
     switch (typeof e) {
         case 'object':
             if (e == null) {

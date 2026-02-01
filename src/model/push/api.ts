@@ -1,45 +1,47 @@
-import { API_URL } from "@/constants";
-import { parseFetchResponse } from "@/lib/parseFetchResponse";
+import { api } from '@/lib/apiClient';
 
 export type SubscribePushParams = {
-  token: string;
-  userPk: string;
-  subscription: PushSubscriptionJSON;
+    token: string;
+    userPk: string;
+    subscription: PushSubscriptionJSON;
 };
 
 export async function subscribePush(params: SubscribePushParams): Promise<{ ok: true }> {
-  const { token, userPk, subscription } = params;
+    const { token, userPk, subscription } = params;
 
-  const response = await fetch(`${API_URL}/push/subscribe`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ userPk, subscription }),
-  });
+    const { data } = await api.post<{ ok: true }>(
+        '/push/subscribe',
+        { userPk, subscription },
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        },
+    );
 
-  return await parseFetchResponse(response);
+    return data;
 }
 
 export type UnsubscribePushParams = {
-  token: string;
-  userPk: string;
-  subscription: PushSubscriptionJSON;
+    token: string;
+    userPk: string;
+    subscription: PushSubscriptionJSON;
 };
 
 export async function unsubscribePush(params: UnsubscribePushParams): Promise<{ ok: true }> {
-  const { token, userPk, subscription } = params;
+    const { token, userPk, subscription } = params;
 
-  const response = await fetch(`${API_URL}/push/unsubscribe`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ userPk, subscription }),
-  });
+    const { data } = await api.post<{ ok: true }>(
+        '/push/unsubscribe',
+        { userPk, subscription },
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        },
+    );
 
-  return await parseFetchResponse(response);
+    return data;
 }
-

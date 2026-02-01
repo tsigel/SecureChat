@@ -39,4 +39,3 @@ export function mergeMessages(local: StoredMessage[], newest: StoredMessage[]): 
 
     return [...local, ...diff].sort((a, b) => a.createdAt - b.createdAt);
 }
-

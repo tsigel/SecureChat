@@ -2,7 +2,8 @@ export const parseFetchResponse = <T>(r: Response): Promise<T> => {
     if (!r.ok) {
         return r.text().then((message) => {
             return Promise.reject({
-                message, response: r
+                message,
+                response: r,
             });
         });
     }

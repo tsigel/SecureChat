@@ -1,24 +1,29 @@
-import type React from 'react'
-import { useState, useCallback } from 'react'
-import { X } from 'lucide-react'
+import type React from 'react';
+import { useState, useCallback } from 'react';
+import { X } from 'lucide-react';
 
-import { SEED_WORDS_COUNT } from '@/constants'
-import { seedToKeyPair } from '@/utils/seedHelpers'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { ChooseAccount } from '@/components/auth/ChooseAccount'
-import { EnterPassword } from '@/components/auth/EnterPassword'
-import { CreateName } from '@/components/auth/CreateName'
-import { CreatePassword } from '@/components/auth/CreatePassword'
-import type { StoredAccount } from '@/model/user'
+import { SEED_WORDS_COUNT } from '@/constants';
+import { seedToKeyPair } from '@/utils/seedHelpers';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ChooseAccount } from '@/components/auth/ChooseAccount';
+import { EnterPassword } from '@/components/auth/EnterPassword';
+import { CreateName } from '@/components/auth/CreateName';
+import { CreatePassword } from '@/components/auth/CreatePassword';
+import type { StoredAccount } from '@/model/user';
 
 interface LoginSeedProps {
     onLogin: () => void;
     onBack: () => void;
 }
 
-type LoginStep = 'choose_account' | 'enter_password' | 'enter_seed' | 'create_name' | 'create_password';
+type LoginStep =
+    | 'choose_account'
+    | 'enter_password'
+    | 'enter_seed'
+    | 'create_name'
+    | 'create_password';
 
 export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
     const [step, setStep] = useState<LoginStep>('choose_account');
@@ -26,8 +31,8 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
     const [userName, setUserName] = useState('');
     const [seedWords, setSeedWords] = useState<string[]>(Array(SEED_WORDS_COUNT).fill(''));
     const [error, setError] = useState('');
-    const [accounts, setAccounts] = useState<StoredAccount[]>(() => 
-        JSON.parse(localStorage.getItem('securechat_accounts') || '[]') as StoredAccount[]
+    const [accounts, setAccounts] = useState<StoredAccount[]>(
+        () => JSON.parse(localStorage.getItem('securechat_accounts') || '[]') as StoredAccount[],
     );
 
     const handleWordChange = useCallback((index: number, value: string) => {
@@ -62,7 +67,7 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
         const keyPair = seedToKeyPair(seed);
 
         if (keyPair.isErr()) {
-            setError('Неверная seed-фраза')
+            setError('Неверная seed-фраза');
             return;
         }
 
@@ -74,11 +79,14 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
         setStep('enter_password');
     }, []);
 
-    const handleDeleteAccount = useCallback((account: StoredAccount) => {
-        const updatedAccounts = accounts.filter((a) => a.publicKey !== account.publicKey);
-        localStorage.setItem('securechat_accounts', JSON.stringify(updatedAccounts));
-        setAccounts(updatedAccounts);
-    }, [accounts]);
+    const handleDeleteAccount = useCallback(
+        (account: StoredAccount) => {
+            const updatedAccounts = accounts.filter((a) => a.publicKey !== account.publicKey);
+            localStorage.setItem('securechat_accounts', JSON.stringify(updatedAccounts));
+            setAccounts(updatedAccounts);
+        },
+        [accounts],
+    );
 
     const handleBackToChoose = useCallback(() => {
         setStep('choose_account');
@@ -92,7 +100,7 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
 
     if (step === 'choose_account') {
         return (
-            <ChooseAccount 
+            <ChooseAccount
                 accounts={accounts}
                 onSelect={handleSelectAccount}
                 onDelete={handleDeleteAccount}
@@ -104,7 +112,7 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
 
     if (step === 'enter_password') {
         return (
-            <EnterPassword 
+            <EnterPassword
                 account={selectedAccount as StoredAccount}
                 onSuccess={onLogin}
                 onBack={handleBackToChoose}
@@ -114,7 +122,7 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
 
     if (step === 'create_name') {
         return (
-            <CreateName 
+            <CreateName
                 seed={seedWords.join(' ')}
                 onNext={handleNameNext}
                 onBack={() => setStep('enter_seed')}
@@ -124,7 +132,7 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
 
     if (step === 'create_password') {
         return (
-            <CreatePassword 
+            <CreatePassword
                 seed={seedWords.join(' ')}
                 name={userName}
                 onComplete={onLogin}
@@ -138,20 +146,20 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
             <Card className="w-full max-w-2xl p-8 space-y-6 bg-card border-border">
                 <div className="space-y-2">
                     <h1 className="text-2xl font-semibold text-foreground">Вход по seed-фразе</h1>
-                    <p className="text-sm text-muted-foreground">Введите вашу seed-фразу из {SEED_WORDS_COUNT} слов для входа</p>
+                    <p className="text-sm text-muted-foreground">
+                        Введите вашу seed-фразу из {SEED_WORDS_COUNT} слов для входа
+                    </p>
                 </div>
 
                 {error && (
-                    <div
-                        className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
                         <X className="h-4 w-4 text-destructive shrink-0" />
                         <p className="text-sm text-destructive">{error}</p>
                     </div>
                 )}
 
                 <div className="space-y-4">
-                    <div
-                        className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 border border-border rounded-lg bg-secondary/50">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 border border-border rounded-lg bg-secondary/50">
                         {seedWords.map((word, index) => (
                             <div key={index} className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
@@ -170,13 +178,19 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
                     </div>
 
                     <div className="bg-secondary/50 border border-border rounded-lg p-4">
-                        <p className="text-sm text-muted-foreground">💡 Вы можете вставить все {SEED_WORDS_COUNT} слов одновременно через
-                            Ctrl+V</p>
+                        <p className="text-sm text-muted-foreground">
+                            💡 Вы можете вставить все {SEED_WORDS_COUNT} слов одновременно через
+                            Ctrl+V
+                        </p>
                     </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <Button onClick={() => setStep('choose_account')} variant="outline" className="w-full sm:flex-1">
+                    <Button
+                        onClick={() => setStep('choose_account')}
+                        variant="outline"
+                        className="w-full sm:flex-1"
+                    >
                         Назад
                     </Button>
                     <Button onClick={handleSeedSubmit} className="w-full sm:flex-1">
@@ -184,7 +198,9 @@ export function LoginPage({ onLogin, onBack }: LoginSeedProps) {
                     </Button>
                 </div>
 
-                <p className="text-xs text-muted-foreground text-center">Ваша seed-фраза надежно хранится локально</p>
+                <p className="text-xs text-muted-foreground text-center">
+                    Ваша seed-фраза надежно хранится локально
+                </p>
             </Card>
         </div>
     );

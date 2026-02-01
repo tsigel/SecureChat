@@ -16,19 +16,26 @@ const generate = () => {
         seed,
         keyPair: {
             publicKey: sodium.to_hex(pair.publicKey),
-            privateKey: sodium.to_hex(pair.privateKey)
-        }
+            privateKey: sodium.to_hex(pair.privateKey),
+        },
     };
 };
 
 (async () => {
     await sodium.ready;
 
-    await writeFile('./test.json', JSON.stringify({
-        Alise: generate(),
-        Bob: generate(),
-        Govard: generate()
-    }, null, 4));
+    await writeFile(
+        './test.json',
+        JSON.stringify(
+            {
+                Alise: generate(),
+                Bob: generate(),
+                Govard: generate(),
+            },
+            null,
+            4,
+        ),
+    );
 
     console.log('Файл test.json успешно создан!');
 })();

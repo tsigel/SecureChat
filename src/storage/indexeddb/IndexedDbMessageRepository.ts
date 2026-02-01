@@ -16,9 +16,8 @@ import { always } from 'ramda';
 type MessageRecord = StoredMessage & { peerPublicKeyHex: string };
 
 const toRecord = (message: StoredMessage): MessageRecord => {
-    const peerPublicKeyHex = message.direction === MessageDirection.Incoming
-        ? message.sender
-        : message.recipient;
+    const peerPublicKeyHex =
+        message.direction === MessageDirection.Incoming ? message.sender : message.recipient;
     return { ...message, peerPublicKeyHex };
 };
 
@@ -29,7 +28,6 @@ const fromRecord = (record: MessageRecord): StoredMessage => {
 };
 
 export class IndexedDbMessageRepository implements MessageRepository {
-
     public addMessages(messages: StoredMessage[]): ResultAsync<StoredMessage[], StorageError> {
         if (!Array.isArray(messages) || messages.length === 0) {
             return errAsync(makeValidationError('messages must be a non-empty array'));
@@ -50,7 +48,7 @@ export class IndexedDbMessageRepository implements MessageRepository {
 
         return fromPromise(
             db.messages.bulkPut(messages.map(toRecord)).then(always(messages)),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 
@@ -68,13 +66,18 @@ export class IndexedDbMessageRepository implements MessageRepository {
                 // Используем составной индекс [owner+peerPublicKeyHex+createdAt]
                 const collection = db.messages
                     .where('[owner+peerPublicKeyHex+createdAt]')
-                    .between([owner, publicKeyHex, lowerDate], [owner, publicKeyHex, upperDate], true, true)
+                    .between(
+                        [owner, publicKeyHex, lowerDate],
+                        [owner, publicKeyHex, upperDate],
+                        true,
+                        true,
+                    )
                     .reverse(); // newest -> oldest
 
                 const records = await collection.limit(limit).toArray();
                 return records.map((record) => fromRecord(record));
             })(),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 
@@ -96,7 +99,7 @@ export class IndexedDbMessageRepository implements MessageRepository {
                 }
                 return known;
             })(),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 
@@ -116,7 +119,7 @@ export class IndexedDbMessageRepository implements MessageRepository {
                 }
                 return found;
             })(),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 
@@ -133,11 +136,13 @@ export class IndexedDbMessageRepository implements MessageRepository {
                 }
                 return Array.from(unique).filter(Boolean);
             })(),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 
-    public markAsDeletedFromServer(params: MarkAsDeletedFromServerParams): ResultAsync<void, StorageError> {
+    public markAsDeletedFromServer(
+        params: MarkAsDeletedFromServerParams,
+    ): ResultAsync<void, StorageError> {
         if (!params.id) return errAsync(makeValidationError('id is required'));
 
         return fromPromise(
@@ -156,11 +161,11 @@ export class IndexedDbMessageRepository implements MessageRepository {
 
                 const next: StoredMessage = {
                     ...message,
-                    deletedFromServer: true
+                    deletedFromServer: true,
                 };
                 await db.messages.put(toRecord(next));
             })(),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 
@@ -185,7 +190,7 @@ export class IndexedDbMessageRepository implements MessageRepository {
                 const next: StoredMessage = { ...message, readAt };
                 await db.messages.put(toRecord(next));
             })(),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 
@@ -212,7 +217,7 @@ export class IndexedDbMessageRepository implements MessageRepository {
 
                 await db.messages.put(toRecord(next));
             })(),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 
@@ -221,7 +226,7 @@ export class IndexedDbMessageRepository implements MessageRepository {
 
         return fromPromise(
             db.messages.delete(id).then(() => undefined),
-            (error) => new UnknownError(error)
+            (error) => new UnknownError(error),
         );
     }
 }

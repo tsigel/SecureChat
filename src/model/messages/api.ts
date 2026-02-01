@@ -1,12 +1,11 @@
 import { pack } from 'msgpackr';
 import { appD } from '@/model/app';
-import { API_URL } from '@/constants';
-import { parseFetchResponse } from '@/lib/parseFetchResponse';
 import type { IncomingMessage, OutgoingMessage, Stored, StoredMessage } from '@/storage';
 import { MessageDirection } from '@/storage';
 import { map, prop } from 'ramda';
 import sodium from 'libsodium-wrappers';
 import { parseMessage } from './utils';
+import { api } from '@/lib/apiClient';
 
 export type FetchMessagesProps = {
     token: string;
@@ -14,12 +13,13 @@ export type FetchMessagesProps = {
 };
 
 export const fetchMessagesFx = appD.createEffect(({ token, pk }: FetchMessagesProps) => {
-    return fetch(`${API_URL}/user/messages`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    })
-        .then<ServerMessage[]>(parseFetchResponse)
+    return api
+        .get<ServerMessage[]>('/user/messages', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+        .then((r) => r.data)
         .then(map(parseMessage(pk)));
 });
 
@@ -39,14 +39,14 @@ export const sendMessageFx = appD.createEffect(({ token, message }: SendMessageF
         message: sodium.from_base64(message.encrypted),
     });
 
-    return fetch(`${API_URL}/message`, {
-        headers: {
-            'Content-Type': 'application/octet-stream',
-            Authorization: `Bearer ${token}`,
-        },
-        method: 'POST',
-        body: body as BodyInit,
-    }).then<{ ok: true; id: string }>(parseFetchResponse);
+    return api
+        .post<{ ok: true; id: string }>('/message', body, {
+            headers: {
+                'Content-Type': 'application/octet-stream',
+                Authorization: `Bearer ${token}`,
+            },
+        })
+        .then((r) => r.data);
 });
 
 export type SendDeliveredProps = {
@@ -60,16 +60,14 @@ export type SendDeliveredResult = {
 };
 
 export const sendDeliveredFx = appD.createEffect(async (data: SendDeliveredProps) => {
-    const response = await fetch(`${API_URL}/message/read`, {
-        method: 'POST',
+    const { data: result } = await api.post('/message/read', data.messages.map(prop('id')), {
         headers: {
             Authorization: `Bearer ${data.token}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data.messages.map(prop('id'))),
     });
 
-    return await parseFetchResponse(response);
+    return result;
 });
 
 type ServerMessage = {
@@ -95,4 +93,3 @@ sendDeliveredFx.fail.watch((result) => {
 sendDeliveredFx.finally.watch((result) => {
     console.log('sendDeliveredFx finally:', result);
 });
-

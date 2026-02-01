@@ -54,12 +54,12 @@ Web Push требует HTTPS (или `localhost`). Для теста через
 
 ```json
 {
-  "userPk": "hex-public-key",
-  "subscription": {
-    "endpoint": "https://…",
-    "expirationTime": null,
-    "keys": { "p256dh": "…", "auth": "…" }
-  }
+    "userPk": "hex-public-key",
+    "subscription": {
+        "endpoint": "https://…",
+        "expirationTime": null,
+        "keys": { "p256dh": "…", "auth": "…" }
+    }
 }
 ```
 
@@ -79,14 +79,14 @@ Backend должен хранить подписки по пользовател
 
 ```json
 {
-  "title": "Новое сообщение",
-  "body": "У вас новое зашифрованное сообщение",
-  "data": {
-    "conversationId": "…",
-    "messageId": "…",
-    "senderPk": "…",
-    "createdAt": 0
-  }
+    "title": "Новое сообщение",
+    "body": "У вас новое зашифрованное сообщение",
+    "data": {
+        "conversationId": "…",
+        "messageId": "…",
+        "senderPk": "…",
+        "createdAt": 0
+    }
 }
 ```
 

@@ -1,7 +1,7 @@
 import { appD } from '@/model/app';
 import type { IncomingMessage, OutgoingMessage, Stored, StoredMessage } from '@/storage';
 import { MessageDirection } from '@/storage';
-import { attach, sample } from 'effector';
+import { attach, combine, sample } from 'effector';
 import { createGate } from 'effector-react';
 import { isNotNil, prop } from 'ramda';
 import { createPoll } from '@/utils/createaPoll';
@@ -19,6 +19,8 @@ import { loadMessagesFx, markAsDeletedFromServerFx, markAsReadFx, saveMessagesFx
 import { $messages } from './store';
 import type { StorageFacade } from '@/storage';
 import { fromAsyncResult } from '@/lib/fromResult';
+import { isNetworkError } from '@/lib/isNetworkError';
+import { $isOnline } from '@/model/network';
 
 export const MessagesGate = createGate({
     domain: appD,
@@ -44,12 +46,26 @@ const playNotificationSoundFx = appD.createEffect(async () => {
 
 // В тестовой среде апстрим может отдавать редиректы/страницы логина на неавторизованные запросы,
 // поэтому поллинг должен быть "пустым" пока нет token/pk (чтобы не ловить redirect-loop).
-const pollFetchMessagesFx = appD.createEffect(async ({ token, pk }: { token: string | null; pk: string | null }) => {
-    if (!token || !pk) {
-        return [] as StoredMessage[];
-    }
-    return await fetchMessagesFx({ token, pk });
-});
+const pollFetchMessagesFx = appD.createEffect(
+    async ({ token, pk }: { token: string | null; pk: string | null }) => {
+        if (!token || !pk) {
+            return [] as StoredMessage[];
+        }
+        return await fetchMessagesFx({ token, pk });
+    },
+);
+
+export const $messagesPollUnavailable = appD
+    .createStore<boolean>(false)
+    .on(pollFetchMessagesFx.failData, (state, error) => (isNetworkError(error) ? true : state))
+    .on(pollFetchMessagesFx.done, () => false)
+    .reset(MessagesGate.close);
+
+export const $showOfflineBanner = combine(
+    $isOnline,
+    $messagesPollUnavailable,
+    (isOnline, pollUnavailable) => !isOnline || pollUnavailable,
+);
 
 type SendMessageSource = {
     recipient: Contact | null;
@@ -59,7 +75,7 @@ type SendMessageSource = {
 
 function canSendMessage(
     source: SendMessageSource,
-    _message: string
+    _message: string,
 ): source is { recipient: Contact; keyPair: KeyPair; token: string } {
     return !!source.recipient && !!source.keyPair && !!source.token;
 }
@@ -74,26 +90,31 @@ type SplitFetchedMessagesResult = {
     knownIds: string[];
 };
 
-const splitFetchedMessagesFx = appD.createEffect(async ({ storage, messages }: SplitFetchedMessagesParams): Promise<SplitFetchedMessagesResult> => {
-    const ids = messages.map((m) => m.id).filter(Boolean);
-    if (!ids.length) {
-        return { newMessages: [], knownIds: [] };
-    }
-
-    const known = await fromAsyncResult(storage.messages.filterKnownIds(ids));
-    const newMessages: StoredMessage[] = [];
-    const knownIds: string[] = [];
-
-    for (const m of messages) {
-        if (known.has(m.id)) {
-            knownIds.push(m.id);
-        } else {
-            newMessages.push(m);
+const splitFetchedMessagesFx = appD.createEffect(
+    async ({
+        storage,
+        messages,
+    }: SplitFetchedMessagesParams): Promise<SplitFetchedMessagesResult> => {
+        const ids = messages.map((m) => m.id).filter(Boolean);
+        if (!ids.length) {
+            return { newMessages: [], knownIds: [] };
         }
-    }
 
-    return { newMessages, knownIds };
-});
+        const known = await fromAsyncResult(storage.messages.filterKnownIds(ids));
+        const newMessages: StoredMessage[] = [];
+        const knownIds: string[] = [];
+
+        for (const m of messages) {
+            if (known.has(m.id)) {
+                knownIds.push(m.id);
+            } else {
+                newMessages.push(m);
+            }
+        }
+
+        return { newMessages, knownIds };
+    },
+);
 
 // Триггерим уведомление о новых входящих (глобально, не только в активном чате)
 sample({
@@ -119,16 +140,18 @@ type GetAckNeededKnownMessagesParams = {
     knownIds: string[];
 };
 
-const getAckNeededKnownMessagesFx = appD.createEffect(async ({ storage, knownIds }: GetAckNeededKnownMessagesParams) => {
-    if (!knownIds.length) {
-        return [] as Stored<IncomingMessage>[];
-    }
+const getAckNeededKnownMessagesFx = appD.createEffect(
+    async ({ storage, knownIds }: GetAckNeededKnownMessagesParams) => {
+        if (!knownIds.length) {
+            return [] as Stored<IncomingMessage>[];
+        }
 
-    const existing = await fromAsyncResult(storage.messages.getMessagesByIds(knownIds));
-    return existing
-        .filter((m): m is Stored<IncomingMessage> => m.direction === MessageDirection.Incoming)
-        .filter((m) => !m.deletedFromServer);
-});
+        const existing = await fromAsyncResult(storage.messages.getMessagesByIds(knownIds));
+        return existing
+            .filter((m): m is Stored<IncomingMessage> => m.direction === MessageDirection.Incoming)
+            .filter((m) => !m.deletedFromServer);
+    },
+);
 
 // Известные (уже в БД) сообщения: если ещё не подтверждены локально — подтверждаем на сервере и помечаем локально.
 sample({
@@ -225,11 +248,13 @@ sample({
     filter: canSendMessage,
     fn: (
         { keyPair, recipient, token }: { recipient: Contact; keyPair: KeyPair; token: string },
-        message: string
+        message: string,
     ): SendMessageFxProps => ({
         message: {
             recipient: recipient.id,
-            encrypted: sodium.to_base64(encrypt(encodeText(message), keyPair, sodium.from_hex(recipient.id))),
+            encrypted: sodium.to_base64(
+                encrypt(encodeText(message), keyPair, sodium.from_hex(recipient.id)),
+            ),
             createdAt: Date.now(),
             direction: MessageDirection.Outgoing,
             delivered: false,
@@ -293,4 +318,3 @@ sample({
 });
 
 export { $messages };
-

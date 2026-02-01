@@ -18,7 +18,7 @@ export function CreatePassword({ seed, name, onComplete, onBack }: CreatePasswor
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     const localSignup = useUnit(signup);
     const hasUser = useUnit($hasUser);
     const signupError = useUnit($signupError);
@@ -45,7 +45,7 @@ export function CreatePassword({ seed, name, onComplete, onBack }: CreatePasswor
             setError('Пароли не совпадают');
             return;
         }
-        
+
         setIsSubmitting(true);
         setTimeout(() => {
             localSignup({ seed, name, password });
@@ -104,9 +104,9 @@ export function CreatePassword({ seed, name, onComplete, onBack }: CreatePasswor
                             Назад
                         </Button>
                     )}
-                    <Button 
-                        onClick={handleComplete} 
-                        disabled={!password || !confirmPassword || isSubmitting} 
+                    <Button
+                        onClick={handleComplete}
+                        disabled={!password || !confirmPassword || isSubmitting}
                         className="w-full sm:flex-1"
                     >
                         {isSubmitting ? 'Сохранение...' : 'Завершить'}

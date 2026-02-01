@@ -1,12 +1,12 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState } from 'react';
 
-import { generateSeed } from '@/utils/seedHelpers'
-import { ConfirmSeed } from '@/components/auth/ConfirmSeed'
-import { GenerateSeed } from '@/components/auth/GenerateSeed'
-import { CreateName } from '@/components/auth/CreateName'
-import { CreatePassword } from '@/components/auth/CreatePassword'
+import { generateSeed } from '@/utils/seedHelpers';
+import { ConfirmSeed } from '@/components/auth/ConfirmSeed';
+import { GenerateSeed } from '@/components/auth/GenerateSeed';
+import { CreateName } from '@/components/auth/CreateName';
+import { CreatePassword } from '@/components/auth/CreatePassword';
 
-type OnboardingStep = 'generate' | 'confirm' | 'create_name' | 'create_password'
+type OnboardingStep = 'generate' | 'confirm' | 'create_name' | 'create_password';
 
 interface OnboardingFlowProps {
     onCancel?: () => void;

@@ -12,7 +12,13 @@ interface ChooseAccountProps {
     onBack?: () => void;
 }
 
-export function ChooseAccount({ accounts, onSelect, onDelete, onLoginWithSeed, onBack }: ChooseAccountProps) {
+export function ChooseAccount({
+    accounts,
+    onSelect,
+    onDelete,
+    onLoginWithSeed,
+    onBack,
+}: ChooseAccountProps) {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <Card className="w-full max-w-md p-8 space-y-6 bg-card border-border">
@@ -34,15 +40,16 @@ export function ChooseAccount({ accounts, onSelect, onDelete, onLoginWithSeed, o
                                     onClick={() => onSelect(account)}
                                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                                 >
-                                    <HashAvatar 
-                                        hash={account.publicKey} 
-                                        name={account.name} 
-                                        className="h-10 w-10 shrink-0" 
+                                    <HashAvatar
+                                        hash={account.publicKey}
+                                        name={account.name}
+                                        className="h-10 w-10 shrink-0"
                                     />
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium truncate">{account.name}</p>
                                         <p className="text-xs text-muted-foreground truncate opacity-70">
-                                            {account.publicKey.slice(0, 6)}...{account.publicKey.slice(-6)}
+                                            {account.publicKey.slice(0, 6)}...
+                                            {account.publicKey.slice(-6)}
                                         </p>
                                     </div>
                                 </button>
@@ -60,15 +67,17 @@ export function ChooseAccount({ accounts, onSelect, onDelete, onLoginWithSeed, o
                         ))
                     ) : (
                         <div className="text-center py-6 border border-dashed border-border rounded-lg">
-                            <p className="text-sm text-muted-foreground">Нет сохраненных аккаунтов</p>
+                            <p className="text-sm text-muted-foreground">
+                                Нет сохраненных аккаунтов
+                            </p>
                         </div>
                     )}
                 </div>
 
                 <div className="space-y-3 pt-2">
-                    <Button 
-                        variant="outline" 
-                        onClick={onLoginWithSeed} 
+                    <Button
+                        variant="outline"
+                        onClick={onLoginWithSeed}
                         className="w-full flex items-center gap-2"
                     >
                         <Key className="h-4 w-4" />

@@ -23,7 +23,7 @@ export function AddContactDialog() {
     const userPublicKeyHex = useUnit($pk);
     const localSetOpenState = useUnit(setOpenState);
     const localAddContact = useUnit(addOrRenameContact);
-    
+
     const [userHash, setUserHash] = useState('');
     const [userName, setUserName] = useState('');
 
@@ -48,7 +48,7 @@ export function AddContactDialog() {
         localAddContact({
             id: trimmedHash,
             name: trimmedName,
-            owner: userPublicKeyHex
+            owner: userPublicKeyHex,
         });
 
         setUserHash('');
@@ -65,11 +65,11 @@ export function AddContactDialog() {
     return (
         <Dialog open={isOpen} onOpenChange={localSetOpenState}>
             <DialogTrigger asChild>
-                {(
+                {
                     <Button variant="ghost" size="icon">
-                        <UserPlus className="h-4 w-4"/>
+                        <UserPlus className="h-4 w-4" />
                     </Button>
-                )}
+                }
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>

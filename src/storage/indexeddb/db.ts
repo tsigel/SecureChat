@@ -10,10 +10,10 @@ export class SecureChatDatabase extends Dexie {
 
     constructor() {
         super('securechat-db');
-        
+
         this.version(1).stores({
             contacts: 'id, nameLower, owner',
-            messages: 'id, [owner+peerPublicKeyHex+createdAt], [owner+direction+delivered], owner'
+            messages: 'id, [owner+peerPublicKeyHex+createdAt], [owner+direction+delivered], owner',
         });
     }
 }
