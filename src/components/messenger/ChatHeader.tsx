@@ -56,6 +56,8 @@ export function ChatHeader({
     const token = useUnit($token);
     const userPk = useUnit($pk);
 
+    // Для включения push достаточно активной сессии и известного public key,
+    // сам userId backend берёт из access‑token.
     const canManagePush = Boolean(token && userPk);
     const isPushEnabled = permission === 'granted' && !!pushSubscription;
 
@@ -67,7 +69,7 @@ export function ChatHeader({
         if (!canManagePush) return;
         if (permission !== 'granted') return;
         // если разрешение уже выдано — синхронизируем подписку с backend
-        void ensureSubscription({ token: token!, userPk: userPk! }).catch((e) => {
+        void ensureSubscription().catch((e) => {
             console.error('[push] ensure subscription failed', e);
         });
     }, [canManagePush, ensureSubscription, permission, token, userPk]);
@@ -108,11 +110,11 @@ export function ChatHeader({
                 return;
             }
 
-            await ensureSubscription({ token: token!, userPk: userPk! });
+            await ensureSubscription();
         } catch (e) {
             console.error('[push] enable push failed', e);
         }
-    }, [canManagePush, ensureSubscription, permission, requestPermission, token, userPk]);
+    }, [canManagePush, ensureSubscription, permission, requestPermission]);
 
     return (
         <>

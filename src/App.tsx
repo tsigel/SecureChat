@@ -23,6 +23,14 @@ export default function App() {
                     </ProtectedRoute>
                 }
             />
+            <Route
+                path="/app/chat/:contactId"
+                element={
+                    <ProtectedRoute hasUser={hasUser}>
+                        <MessengerPage />
+                    </ProtectedRoute>
+                }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );

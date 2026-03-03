@@ -43,52 +43,42 @@ Web Push требует HTTPS (или `localhost`). Для теста через
 - Запуск фронтенда с test-api: `pnpm dev:test-api`
 - Запуск nginx: см. `infra/nginx-test/README.md`
 
-### Контракт backend API для push
+### Контракт backend API для push (oblivion)
 
-Фронтенд ожидает следующие endpoints (Bearer auth):
+Фронтенд ожидает следующие endpoints (Bearer auth) от backend oblivion:
 
-#### `POST /push/subscribe`
+#### `POST /message/subscribe`
 
-- **Headers**: `Authorization: Bearer <token>`, `Content-Type: application/json`
-- **Body**:
+- **Headers**: `Authorization: Bearer <token>`, `Content-Type: application/json` (авторизация выставляется interceptor'ами `api`)
+- **Body**: стандартный Web Push subscription object, который возвращает `PushManager.subscribe`:
 
 ```json
 {
-    "userPk": "hex-public-key",
-    "subscription": {
-        "endpoint": "https://…",
-        "expirationTime": null,
-        "keys": { "p256dh": "…", "auth": "…" }
-    }
+    "endpoint": "https://…",
+    "expirationTime": null,
+    "keys": { "p256dh": "…", "auth": "…" }
 }
 ```
 
-- **Response**: `{"ok": true}` (или `204 No Content`)
+- **Response**: `{"ok": true}` (или `201 Created`/`204 No Content`)
 
-#### `POST /push/unsubscribe`
-
-- **Headers**: `Authorization: Bearer <token>`, `Content-Type: application/json`
-- **Body**: то же, что и для subscribe
-- **Response**: `{"ok": true}` (или `204 No Content`)
-
-Backend должен хранить подписки по пользователю (`userPk`) и отправлять Web Push при появлении новых сообщений.
+Backend хранит подписки, привязанные к пользователю (по userId из access‑token), и отправляет Web Push при появлении новых сообщений.
 
 ### Payload push-уведомления
 
-Из-за E2E-шифрования payload должен содержать только метаданные. Рекомендуемый формат:
+Backend oblivion отправляет через Web Push JSON вида:
 
 ```json
 {
-    "title": "Новое сообщение",
-    "body": "У вас новое зашифрованное сообщение",
-    "data": {
-        "conversationId": "…",
-        "messageId": "…",
-        "senderPk": "…",
-        "createdAt": 0
-    }
+  "id": "message-id",
+  "sender": "sender-public-key"
 }
 ```
+
+Service Worker (`src/sw.ts`) преобразует это в нотификацию с заголовком/текстом
+и сохраняет `messageId`/`sender` в `notification.data`. При клике вкладка с
+приложением фокусируется или открывается, после чего клиент может обновить
+список сообщений.
 
 ## Learn More
 

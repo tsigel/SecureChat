@@ -12,7 +12,7 @@ export class SecureChatDatabase extends Dexie {
         super('securechat-db');
 
         this.version(1).stores({
-            contacts: 'id, nameLower, owner',
+            contacts: '[owner+id], nameLower, owner',
             messages: 'id, [owner+peerPublicKeyHex+createdAt], [owner+direction+delivered], owner',
         });
     }

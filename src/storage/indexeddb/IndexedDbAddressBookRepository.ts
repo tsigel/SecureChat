@@ -33,12 +33,18 @@ export class IndexedDbAddressBookRepository implements AddressBookRepository {
     }
 
     public getContactByPublicKey(
+        owner: PublicKeyHex,
         publicKeyHex: PublicKeyHex,
     ): ResultAsync<StoredContact | null, StorageError> {
+        if (!owner) return errAsync(makeValidationError('owner is required'));
         if (!publicKeyHex) return errAsync(makeValidationError('publicKeyHex is required'));
 
         return fromPromise(
-            db.contacts.get(publicKeyHex).then((record) => (record ? formRecord(record) : null)),
+            db.contacts
+                .where('[owner+id]')
+                .equals([owner, publicKeyHex])
+                .first()
+                .then((record) => (record ? formRecord(record) : null)),
             (error) => new UnknownError(error),
         );
     }
@@ -64,13 +70,17 @@ export class IndexedDbAddressBookRepository implements AddressBookRepository {
 
     public deleteContact(
         publicKeyHex: PublicKeyHex,
-        userPublicKeyHex: PublicKeyHex,
+        owner: PublicKeyHex,
     ): ResultAsync<void, StorageError> {
         if (!publicKeyHex) return errAsync(makeValidationError('publicKeyHex is required'));
-        if (!userPublicKeyHex) return errAsync(makeValidationError('userPublicKeyHex is required'));
+        if (!owner) return errAsync(makeValidationError('owner is required'));
 
         return fromPromise(
-            db.contacts.delete(publicKeyHex).then(always(void 0)),
+            db.contacts
+                .where('[owner+id]')
+                .equals([owner, publicKeyHex])
+                .delete()
+                .then(always(void 0)),
             (error) => new UnknownError(error),
         );
     }

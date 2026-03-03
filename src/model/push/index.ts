@@ -1,5 +1,6 @@
 import { appD } from '@/model/app';
 import { subscribePush, unsubscribePush } from './api';
+import { selectContact } from '@/model/contacts';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -42,43 +43,41 @@ export const $notificationPermission = appD
     .on(requestNotificationPermissionFx.doneData, (_, permission) => permission)
     .on(refreshNotificationPermission, (state) => state);
 
-export const ensurePushSubscriptionFx = appD.createEffect(
-    async (params: { token: string; userPk: string }) => {
-        if (!canUsePush()) {
-            throw new Error('Push API не поддерживается в этом браузере');
-        }
+export const ensurePushSubscriptionFx = appD.createEffect(async () => {
+    if (!canUsePush()) {
+        throw new Error('Push API не поддерживается в этом браузере');
+    }
 
-        if (!canUseNotifications() || Notification.permission !== 'granted') {
-            throw new Error('Нет разрешения на уведомления');
-        }
+    if (!canUseNotifications() || Notification.permission !== 'granted') {
+        throw new Error('Нет разрешения на уведомления');
+    }
 
-        const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+    const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
 
-        if (!vapidPublicKey) {
-            throw new Error('Не задан VITE_VAPID_PUBLIC_KEY');
-        }
+    if (!vapidPublicKey) {
+        throw new Error('Не задан VITE_VAPID_PUBLIC_KEY');
+    }
 
-        const registration = await navigator.serviceWorker.ready;
-        const existing = await registration.pushManager.getSubscription();
+    const registration = await navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
 
-        const subscription =
-            existing ??
-            (await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-            }));
+    const subscription =
+        existing ??
+        (await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as unknown as
+                | BufferSource
+                | undefined,
+        }));
 
-        const subscriptionJson = subscription.toJSON();
+    const subscriptionJson = subscription.toJSON();
 
-        await subscribePush({
-            token: params.token,
-            userPk: params.userPk,
-            subscription: subscriptionJson,
-        });
+    await subscribePush({
+        subscription: subscriptionJson,
+    });
 
-        return subscriptionJson;
-    },
-);
+    return subscriptionJson;
+});
 
 export const unsubscribeFromPushFx = appD.createEffect(
     async (params: { token: string; userPk: string }) => {
@@ -110,3 +109,46 @@ export const $pushSubscription = appD
     .createStore<PushSubscriptionJSON | null>(null)
     .on(ensurePushSubscriptionFx.doneData, (_, sub) => sub)
     .on(unsubscribeFromPushFx.doneData, () => null);
+
+function bindServiceWorkerMessageListener() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    if (!('serviceWorker' in navigator)) {
+        return;
+    }
+
+    navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
+        const data = event.data as unknown;
+
+        if (!data || typeof data !== 'object') {
+            return;
+        }
+
+        const payload = data as { type?: string; contactId?: unknown };
+
+        if (payload.type !== 'push-notification-click') {
+            return;
+        }
+
+        if (typeof payload.contactId !== 'string') {
+            return;
+        }
+
+        const contactId = payload.contactId;
+
+        try {
+            selectContact(contactId);
+        } catch {
+            // ignore effector errors
+        }
+
+        try {
+            window.location.assign(`/app/chat/${encodeURIComponent(contactId)}`);
+        } catch {
+            // ignore navigation errors
+        }
+    });
+}
+
+bindServiceWorkerMessageListener();

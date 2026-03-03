@@ -3,8 +3,8 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "build:sw": "tsc -p tsconfig.sw.build.json",
-        "build:sw:watch": "tsc -p tsconfig.sw.build.json -w --preserveWatchOutput",
+        "build:sw": "vite build --config vite.sw.config.ts",
+        "build:sw:watch": "vite build --config vite.sw.config.ts --watch",
         "build": "pnpm run build:sw && vite build",
         "dev": "pnpm run build:sw && vite",
         "dev:test-api": "pnpm run build:sw && VITE_API_URL=https://cryptomsg.test:443/api/v1 vite",
@@ -51,7 +51,8 @@
         "sonner": "^1.7.4",
         "squareicon": "^2.0.0",
         "tailwind-merge": "^3.3.1",
-        "tailwindcss-animate": "^1.0.7"
+        "tailwindcss-animate": "^1.0.7",
+        "zod": "^4.3.6"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "^4.1.9",

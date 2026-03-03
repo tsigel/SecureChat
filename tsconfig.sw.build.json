@@ -8,10 +8,10 @@
         "noEmit": false,
         "outDir": "./public",
         "rootDir": "./src",
-        "sourceMap": false,
-        "declaration": false,
+        "sourceMap": true,
+        "declaration": true,
         "emitDeclarationOnly": false
     },
-    "include": ["src/sw.ts"],
+    "include": ["src/workers"],
     "exclude": ["node_modules"]
 }

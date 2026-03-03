@@ -1,6 +1,10 @@
 {
     "compilerOptions": {
-        "lib": ["dom", "dom.iterable", "esnext"],
+        "lib": [
+            "dom",
+            "dom.iterable",
+            "esnext",
+        ],
         "target": "ES6",
         "skipLibCheck": true,
         "strict": true,
@@ -13,11 +17,24 @@
         "jsx": "react-jsx",
         "baseUrl": ".",
         "incremental": true,
-        "typeRoots": ["./node_modules/@types", "./vendors"],
+        "typeRoots": [
+            "./node_modules/@types",
+            "./vendors"
+        ],
         "paths": {
-            "@/*": ["./src/*"]
+            "@/*": [
+                "./src/*"
+            ]
         }
     },
-    "include": ["vite-env.d.ts", "src/**/*.ts", "src/**/*.tsx", "vendors/**/*.d.ts"],
-    "exclude": ["node_modules", "src/sw.ts"]
+    "include": [
+        "vite-env.d.ts",
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "vendors/**/*.d.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "src/sw.ts"
+    ]
 }

@@ -7,8 +7,17 @@
 /build
 /dist
 
-# generated service worker (built from src/sw.ts)
+# generated service worker bundles (built from src/sw.ts)
 /public/sw.js
+/public/sw-*.js
+/public/sw-*.js.map
+
+# legacy worker build artifacts (tsc outDir)
+/public/workers/
+/public/storage/
+/public/utils/
+/public/error.js
+/public/error.js.map
 
 # debug
 npm-debug.log*

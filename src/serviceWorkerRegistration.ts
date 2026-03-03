@@ -7,7 +7,7 @@ export function registerServiceWorker(): ResultAsync<ServiceWorkerRegistration, 
     }
 
     return ResultAsync.fromPromise(
-        navigator.serviceWorker.register('/sw.js', { scope: '/' }),
+        navigator.serviceWorker.register('/sw.js', { scope: '/', type: 'module' }),
         always(null),
     );
 }

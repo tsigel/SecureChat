@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useUnit } from 'effector-react';
 import { useGate } from 'effector-react';
 import { $pk, logOut } from '@/model/user';
@@ -7,24 +7,45 @@ import { MessageList } from '@/components/messenger/MessageList';
 import { Sidebar } from '@/components/messenger/Sidebar';
 import { ChatHeader } from '@/components/messenger/ChatHeader';
 import { EmptyState } from '@/components/messenger/EmptyState';
-import { $allChats, $selectedContact, addOrRenameContact, deleteContact } from '@/model/contacts';
+import { $allChats, $selectedContact, addOrRenameContact, deleteContact, selectContact } from '@/model/contacts';
 import { setOpenState } from '@/components/messenger/addContactDialog/addContactModel';
 import { MessagesGate } from '@/model/messages';
 import { OfflineBanner } from '@/components/common/OfflineBanner';
+import { useParams } from 'react-router-dom';
 
 export function MessengerPage() {
     useGate(MessagesGate);
+
+    const { contactId } = useParams<{ contactId?: string }>();
 
     const selectedContact = useUnit($selectedContact);
     const chats = useUnit($allChats);
     const localDeleteContact = useUnit(deleteContact);
     const localRenameContact = useUnit(addOrRenameContact);
     const localSetOpenState = useUnit(setOpenState);
+    const localSelectContact = useUnit(selectContact);
     const publicKeyHex = useUnit($pk);
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isChatSearchOpen, setIsChatSearchOpen] = useState(false);
     const [chatSearchQuery, setChatSearchQuery] = useState('');
+
+    useEffect(() => {
+        if (!contactId) {
+            return;
+        }
+
+        const exists = chats.some((chat) => chat.id === contactId);
+        if (!exists) {
+            return;
+        }
+
+        if (selectedContact && selectedContact.id === contactId) {
+            return;
+        }
+
+        localSelectContact(contactId);
+    }, [chats, contactId, localSelectContact, selectedContact]);
 
     const handleDeleteUser = useCallback(() => {
         if (selectedContact) {
