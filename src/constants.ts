@@ -5,3 +5,5 @@ export const DATE_TIME_FORMAT = 'DD.MM.YYYY HH:mm';
 export const DATE_TIME_SHORT_FORMAT = 'DD.MM HH:mm';
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'https://cryptomsg.net/api/v1';
+
+export const INIT_WORKER_MESSAGE = 'INIT_MESSAGE_PORT_MESSAGE';

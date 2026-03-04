@@ -1,12 +1,12 @@
 /// <reference lib="webworker" />
 import { ResultAsync } from 'neverthrow';
-import { isUserActive } from '@/workers/isUserActive';
 import { showNotification } from '@/workers/showNotification';
 import { always } from 'ramda';
 import { WebStorage } from '@/storage';
 import { pushMessageJson } from '@/workers/jsonParse';
 import { validate } from '@/utils/validate';
 import zod from 'zod';
+import { PageManager } from '@/bus/worker/PageManager';
 
 const pushSchema = zod.object({
     sender: zod.string(),
@@ -16,10 +16,12 @@ const pushSchema = zod.object({
 export class Service {
     private readonly sw: ServiceWorkerGlobalScope;
     private readonly storage: WebStorage;
+    private readonly pages: PageManager;
 
-    constructor(sw: ServiceWorkerGlobalScope) {
+    constructor(sw: ServiceWorkerGlobalScope, pages: PageManager) {
         this.sw = sw;
         this.storage = new WebStorage();
+        this.pages = pages;
 
         void this.storage.init();
         this.setHandlers();
@@ -38,43 +40,39 @@ export class Service {
         });
 
         sw.addEventListener('push', (event) => {
-            console.log('Receive push!', event);
-            const task = isUserActive(sw)
-                .andThen((active) => {
-                    if (active || !event.data) {
-                        console.log('No active tabs or no data', active, event.data);
+            this.pages.log(['Receive push!']);
 
-                        return showNotification(sw, '', {
-                            silent: true,
-                            tag: 'noop'
+            const task = this.pages.length() === 0 || !event.data
+                ? showNotification(sw, '', {
+                    silent: true,
+                    tag: 'noop'
+                })
+                : pushMessageJson(event.data)
+                    .andThen((data) => validate(pushSchema, data))
+                    .asyncAndThen((payload) => {
+                        return this.storage.contacts
+                            .getContactByPublicKey(payload.subscriber, payload.sender)
+                            .map((contact) => ({ contact, payload }));
+                    })
+                    .andThen(({ contact, payload }) => {
+                        const title = contact
+                            ? `Новое сообщение от ${contact.name}`
+                            : `Новое сообщение от ${payload.sender}`;
+
+                        this.pages.log(['Create new push:', title]);
+
+                        return showNotification(sw, title, {
+                            tag: `${payload.subscriber}-${payload.sender}`,
+                            data: {
+                                sender: payload.sender,
+                                subscriber: payload.subscriber,
+                            },
+                            // TODO: icon
                         });
-                    }
-
-                    return pushMessageJson(event.data)
-                        .andThen((data) => validate(pushSchema, data))
-                        .asyncAndThen((payload) => {
-                            return this.storage.contacts
-                                .getContactByPublicKey(payload.subscriber, payload.sender)
-                                .map((contact) => ({ contact, payload }));
-                        })
-                        .andThen(({ contact, payload }) => {
-                            const title = contact
-                                ? `Новое сообщение от ${contact.name}`
-                                : `Новое сообщение от ${payload.sender}`;
-
-                            return showNotification(sw, title, {
-                                tag: `${payload.subscriber}-${payload.sender}`,
-                                data: {
-                                    sender: payload.sender,
-                                    subscriber: payload.subscriber,
-                                },
-                                // TODO: icon
-                            });
-                        })
-                        .orTee((e) => {
-                            console.error(`Some error in push flow`, e);
-                        });
-                });
+                    })
+                    .orTee((e) => {
+                        console.error(`Some error in push flow`, e);
+                    });
 
             event.waitUntil(task.match(always(void 0), always(void 0)));
         });

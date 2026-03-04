@@ -25,6 +25,7 @@
         "@scure/base": "^2.0.0",
         "@scure/bip39": "^2.0.1",
         "@tsigel/async-map": "^1.1.5",
+        "@tsigel/message-bus": "^1.1.0",
         "@types/libsodium-wrappers": "^0.7.14",
         "@types/ramda": "^0.31.1",
         "autoprefixer": "^10.4.20",
