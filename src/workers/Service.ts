@@ -21,10 +21,8 @@ export class Service {
         this.sw = sw;
         this.storage = new WebStorage();
 
-        void this.storage.init()
-            .andTee(() => {
-                this.setHandlers();
-            });
+        void this.storage.init();
+        this.setHandlers();
     }
 
     private setHandlers(): void {
