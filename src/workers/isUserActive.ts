@@ -13,10 +13,5 @@ export const isUserActive = (root: ServiceWorkerGlobalScope): ResultAsync<boolea
         type: 'window',
         includeUncontrolled: true // Обязательно для отладки
     }).map((clients) => {
-        // Логируем для отладки, что видит воркер
-        console.log(`[SW] Found ${clients.length} clients:`,
-            clients.map(c => ({ url: c.url, state: c.visibilityState, focused: c.focused }))
-        );
-        // Если есть хоть одна видимая вкладка (даже если фокус на консоли)
-        return clients.some(client => client.visibilityState === 'visible');
+        return clients.length > 0;
     });
