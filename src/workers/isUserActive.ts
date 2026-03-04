@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { ResultAsync } from 'neverthrow';
+import { matchAll } from '@/workers/clients';
 
 type ClientMatchError = {
     kind: 'client-match',
@@ -8,14 +9,14 @@ type ClientMatchError = {
 }
 
 export const isUserActive = (root: ServiceWorkerGlobalScope): ResultAsync<boolean, ClientMatchError> =>
-    ResultAsync.fromPromise(root.clients.matchAll({
-            type: 'window',
-            includeUncontrolled: true
-        }),
-        (error): ClientMatchError => ({
-            kind: 'client-match',
-            error
-        }))
-        .map((clients) => {
-            return clients.some(client => client.visibilityState === 'visible' && client.focused);
-        });
+    matchAll(root, {
+        type: 'window',
+        includeUncontrolled: true // Обязательно для отладки
+    }).map((clients) => {
+        // Логируем для отладки, что видит воркер
+        console.log(`[SW] Found ${clients.length} clients:`,
+            clients.map(c => ({ url: c.url, state: c.visibilityState, focused: c.focused }))
+        );
+        // Если есть хоть одна видимая вкладка (даже если фокус на консоли)
+        return clients.some(client => client.visibilityState === 'visible');
+    });
