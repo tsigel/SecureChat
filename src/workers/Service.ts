@@ -42,6 +42,7 @@ export class Service {
             const task = isUserActive(sw)
                 .andThen((active) => {
                     if (active || !event.data) {
+                        console.log('No active tabs or no data', active, event.data);
                         return okAsync(void 0);
                     }
 
