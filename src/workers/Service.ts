@@ -40,6 +40,7 @@ export class Service {
         });
 
         sw.addEventListener('push', (event) => {
+            console.log('Receive push!', event);
             const task = isUserActive(sw)
                 .andThen((active) => {
                     if (active || !event.data) {
@@ -66,6 +67,9 @@ export class Service {
                                 },
                                 // TODO: icon
                             });
+                        })
+                        .orTee((e) => {
+                            console.error(`Some error in push flow`, e);
                         });
                 });
 
