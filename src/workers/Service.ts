@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { okAsync, ResultAsync } from 'neverthrow';
+import { ResultAsync } from 'neverthrow';
 import { isUserActive } from '@/workers/isUserActive';
 import { showNotification } from '@/workers/showNotification';
 import { always } from 'ramda';
@@ -43,7 +43,11 @@ export class Service {
                 .andThen((active) => {
                     if (active || !event.data) {
                         console.log('No active tabs or no data', active, event.data);
-                        return okAsync(void 0);
+
+                        return showNotification(sw, '', {
+                            silent: true,
+                            tag: 'noop'
+                        });
                     }
 
                     return pushMessageJson(event.data)

@@ -39,10 +39,10 @@ const playNotificationSoundFx = appD.createEffect(async () => {
             notificationAudio = new Audio('/notification.mp3');
 
             notificationAudio.addEventListener('ended', () => {
-                notificationAudio.pause();
-                notificationAudio.currentTime = 0;
-                notificationAudio.removeAttribute('src');
-                notificationAudio.load();
+                notificationAudio!.pause();
+                notificationAudio!.currentTime = 0;
+                notificationAudio!.removeAttribute('src');
+                notificationAudio!.load();
                 notificationAudio = null;
             });
         }
