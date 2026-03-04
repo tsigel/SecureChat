@@ -44,6 +44,7 @@ export const $notificationPermission = appD
     .on(refreshNotificationPermission, (state) => state);
 
 export const ensurePushSubscriptionFx = appD.createEffect(async () => {
+    debugger
     if (!canUsePush()) {
         throw new Error('Push API не поддерживается в этом браузере');
     }
