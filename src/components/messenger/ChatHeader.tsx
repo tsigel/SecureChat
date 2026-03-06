@@ -12,18 +12,10 @@ import { HashAvatar } from '@/components/common/HashAvatar';
 import type { Contact } from './types';
 import { RenameUserDialog } from './RenameUserDialog';
 import { useUnit } from 'effector-react';
-import {
-    $notificationPermission,
-    $pushSubscription,
-    ensurePushSubscriptionFx,
-    getNotificationPermissionFx,
-    requestNotificationPermissionFx,
-} from '@/model/push';
 import { $pk, $token } from '@/model/user';
 
 interface ChatHeaderProps {
     contact: Contact;
-    isSidebarOpen: boolean;
     onToggleSidebar: () => void;
     isChatSearchOpen: boolean;
     onToggleChatSearch: () => void;
@@ -36,7 +28,6 @@ interface ChatHeaderProps {
 
 export function ChatHeader({
     contact,
-    isSidebarOpen,
     onToggleSidebar,
     isChatSearchOpen,
     onToggleChatSearch,
@@ -48,31 +39,12 @@ export function ChatHeader({
 }: ChatHeaderProps) {
     const [isRenameOpen, setIsRenameOpen] = useState(false);
 
-    const permission = useUnit($notificationPermission);
-    const pushSubscription = useUnit($pushSubscription);
-    const getPermission = useUnit(getNotificationPermissionFx);
-    const requestPermission = useUnit(requestNotificationPermissionFx);
-    const ensureSubscription = useUnit(ensurePushSubscriptionFx);
     const token = useUnit($token);
     const userPk = useUnit($pk);
 
     // Для включения push достаточно активной сессии и известного public key,
     // сам userId backend берёт из access‑token.
     const canManagePush = Boolean(token && userPk);
-    const isPushEnabled = permission === 'granted' && !!pushSubscription;
-
-    useEffect(() => {
-        void getPermission();
-    }, [getPermission]);
-
-    useEffect(() => {
-        if (!canManagePush) return;
-        if (permission !== 'granted') return;
-        // если разрешение уже выдано — синхронизируем подписку с backend
-        void ensureSubscription().catch((e) => {
-            console.error('[push] ensure subscription failed', e);
-        });
-    }, [canManagePush, ensureSubscription, permission, token, userPk]);
 
     const handleCopyHash = useCallback(() => {
         if (contact.id) {
@@ -95,26 +67,6 @@ export function ChatHeader({
     const handleOpenRename = useCallback(() => {
         setIsRenameOpen(true);
     }, []);
-
-    const handleEnablePush = useCallback(async () => {
-        if (!canManagePush) {
-            console.warn('[push] no token/userPk yet');
-            return;
-        }
-
-        try {
-            const nextPermission =
-                permission === 'default' ? await requestPermission() : permission;
-
-            if (nextPermission !== 'granted') {
-                return;
-            }
-
-            await ensureSubscription();
-        } catch (e) {
-            console.error('[push] enable push failed', e);
-        }
-    }, [canManagePush, ensureSubscription, permission, requestPermission]);
 
     return (
         <>
@@ -166,26 +118,6 @@ export function ChatHeader({
                 )}
 
                 <div className="flex items-center gap-1">
-                    <Button
-                        variant={isPushEnabled ? 'secondary' : 'ghost'}
-                        size="icon"
-                        className="hover:bg-muted"
-                        onClick={handleEnablePush}
-                        disabled={!canManagePush || permission === 'denied'}
-                        title={
-                            permission === 'denied'
-                                ? 'Уведомления заблокированы в браузере'
-                                : isPushEnabled
-                                  ? 'Push‑уведомления включены'
-                                  : 'Включить push‑уведомления'
-                        }
-                    >
-                        {isPushEnabled ? (
-                            <Bell className="h-5 w-5" />
-                        ) : (
-                            <BellOff className="h-5 w-5" />
-                        )}
-                    </Button>
                     <Button
                         variant={isChatSearchOpen ? 'secondary' : 'ghost'}
                         size="icon"

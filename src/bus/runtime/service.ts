@@ -3,7 +3,7 @@ import { CustomError, make } from '@/utils/error';
 import { INIT_WORKER_MESSAGE } from '@/constants';
 import { MessagePortAdapter } from '@/bus/MessagePortAdapter';
 import { Bus } from '@tsigel/message-bus';
-import { Events } from '@/bus/types';
+import { Events, MainBus } from '@/bus/types';
 
 
 type CreateError =
@@ -22,10 +22,20 @@ type RequestSubscriptionError =
 type RequestPermissionError =
     | CustomError<'request-permission'>;
 
+export type InitializeResult = {
+    bus: MainBus,
+    worker: ServiceWorker;
+    registration: ServiceWorkerRegistration;
+    subscription: PushSubscription | null;
+}
+
+export type InitializeError =
+    | CreateError | ActivateError | RequestSubscriptionError;
+
 const requestSubscription = (registration: ServiceWorkerRegistration): ResultAsync<PushSubscription | null, RequestSubscriptionError> =>
     ResultAsync.fromPromise(registration.pushManager.getSubscription(), make('permission-denied'));
 
-export const initialize = () => {
+export const initialize = (): ResultAsync<InitializeResult, InitializeError> => {
     if (!canUseNotifications()) {
         return errAsync({ type: 'no-notification', error: null });
     }
@@ -50,7 +60,7 @@ export const initialize = () => {
             port1.addEventListener('message', console.log);
 
             const adapter = new MessagePortAdapter(port1);
-            const bus = new Bus<Events>(adapter);
+            const bus: MainBus = new Bus(adapter);
 
             bus.registerRequestHandler('ping', (ts: number) => {
                 console.log('Receive ping event from service worker');
@@ -107,4 +117,6 @@ const waitWorkerReady = (): ResultAsync<ServiceWorker, ActivateError> => {
 export const requestPermissions = (): ResultAsync<NotificationPermission, RequestPermissionError> => {
     return ResultAsync.fromPromise(Notification.requestPermission(), make('request-permission'));
 };
+
+export const initializeRequest = initialize();
 

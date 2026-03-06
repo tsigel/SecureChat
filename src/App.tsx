@@ -7,6 +7,8 @@ import { $hasUser } from '@/model/user';
 import { useUnit } from 'effector-react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { initialize } from '@/bus/runtime/service';
+import { Fragment } from 'react';
+import { EnablePushDialog } from '@/components/push/EnablePushDialog';
 
 initialize()
     .orTee(e => {
@@ -15,28 +17,31 @@ initialize()
 
 export default function App() {
     return (
-        <Routes>
-            <Route path="/" element={<LandingRoute/>}/>
-            <Route path="/auth/signup" element={<SignupRoute/>}/>
-            <Route path="/auth/login" element={<LoginRoute/>}/>
-            <Route
-                path="/app"
-                element={
-                    <ProtectedRoute>
-                        <MessengerPage/>
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/app/chat/:contactId"
-                element={
-                    <ProtectedRoute>
-                        <MessengerPage/>
-                    </ProtectedRoute>
-                }
-            />
-            <Route path="*" element={<Navigate to="/" replace/>}/>
-        </Routes>
+        <Fragment>
+            <Routes>
+                <Route path="/" element={<LandingRoute/>}/>
+                <Route path="/auth/signup" element={<SignupRoute/>}/>
+                <Route path="/auth/login" element={<LoginRoute/>}/>
+                <Route
+                    path="/app"
+                    element={
+                        <ProtectedRoute>
+                            <MessengerPage/>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/app/chat/:contactId"
+                    element={
+                        <ProtectedRoute>
+                            <MessengerPage/>
+                        </ProtectedRoute>
+                    }
+                />
+                <Route path="*" element={<Navigate to="/" replace/>}/>
+            </Routes>
+            <EnablePushDialog/>
+        </Fragment>
     );
 }
 
