@@ -1,0 +1,17 @@
+{
+  "name": "@securechat/db",
+  "version": "0.1.0",
+  "description": "Database access layer for SecureChat.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@securechat/protocol": "workspace:*"
+  }
+}

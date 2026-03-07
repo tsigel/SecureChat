@@ -1,41 +1,43 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
-/node_modules
+node_modules/
 
-# production
-/build
-/dist
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
 
-# generated service worker bundles (built from src/sw.ts)
-/public/sw.js
-/public/sw-*.js
-/public/sw-*.js.map
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# legacy worker build artifacts (tsc outDir)
-/public/workers/
-/public/storage/
-/public/utils/
-/public/error.js
-/public/error.js.map
+# Metro
+.metro-health-check*
 
 # debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
 
-# env files
-.env*
+# macOS
+.DS_Store
+*.pem
 
-# local dev certs (nginx)
-/infra/nginx-test/certs/*.key
-/infra/nginx-test/certs/*.crt
-/infra/nginx-test/certs/*.pem
+# local env files
+.env*.local
 
 # typescript
 *.tsbuildinfo
 
-# macOS
-.DS_Store
-test.json
+app-example
+
+# generated native folders
+/ios
+/android

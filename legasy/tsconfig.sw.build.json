@@ -1,0 +1,19 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "lib": ["ES2020", "WebWorker"],
+        "target": "ES2020",
+        "module": "ES2020",
+        "moduleResolution": "Bundler",
+        "noEmit": false,
+        "outDir": "./src/public",
+        "rootDir": "./src",
+        "sourceMap": true,
+        "declaration": true,
+        "emitDeclarationOnly": false
+    },
+    "include": [
+        "./src/workers"
+    ],
+    "exclude": ["node_modules"]
+}

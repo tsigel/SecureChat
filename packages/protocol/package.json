@@ -1,0 +1,14 @@
+{
+  "name": "@securechat/protocol",
+  "version": "0.1.0",
+  "description": "Protocol types and message formats for SecureChat.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint ."
+  }
+}
